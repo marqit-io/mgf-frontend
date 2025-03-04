@@ -84,7 +84,7 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
 export const getTokenTopHolders = async (mintAccount: PublicKey, totalSupply: number, price: number) => {
     axios.defaults.headers.common['token'] = import.meta.env.VITE_SOLSCAN_API_KEY;
     const response = (await axios.get(`https://pro-api.solscan.io/v2.0/token/holders?address=${mintAccount.toString()}&page=1&page_size=10`)).data.data.items;
-    let result: Holder[] = [];
+    const result: Holder[] = [];
 
     console.log(response);
 
