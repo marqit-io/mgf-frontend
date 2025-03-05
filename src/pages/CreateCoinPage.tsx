@@ -772,7 +772,9 @@ function CreateCoinPage() {
               <button
                 type="button"
                 onClick={() => handleTaxTypeSelect('none')}
-                className={`terminal-card p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] ${formData.taxOption === 'none' ? 'bg-[#00ff00]/20 border-[#00ff00]' : 'bg-black/30'
+                className={`p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] border rounded-lg ${formData.taxOption === 'none'
+                    ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                    : 'bg-black/30 border-[#00ff00]/20'
                   }`}
               >
                 <Timer size={24} className="mx-auto mb-2" />
@@ -783,7 +785,9 @@ function CreateCoinPage() {
               <button
                 type="button"
                 onClick={() => handleTaxTypeSelect('distribute')}
-                className={`terminal-card p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] ${formData.taxOption === 'distribute' ? 'bg-[#00ff00]/20 border-[#00ff00]' : 'bg-black/30'
+                className={`p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] border rounded-lg ${formData.taxOption === 'distribute'
+                    ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                    : 'bg-black/30 border-[#00ff00]/20'
                   }`}
               >
                 <Gift size={24} className="mx-auto mb-2 text-green-400" />
@@ -794,7 +798,9 @@ function CreateCoinPage() {
               <button
                 type="button"
                 onClick={() => handleTaxTypeSelect('burn')}
-                className={`terminal-card p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] ${formData.taxOption === 'burn' ? 'bg-[#00ff00]/20 border-[#00ff00]' : 'bg-black/30'
+                className={`p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] border rounded-lg ${formData.taxOption === 'burn'
+                    ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                    : 'bg-black/30 border-[#00ff00]/20'
                   }`}
               >
                 <Flame size={24} className="mx-auto mb-2 text-red-400" />
@@ -805,7 +811,9 @@ function CreateCoinPage() {
               <button
                 type="button"
                 onClick={() => handleTaxTypeSelect('both')}
-                className={`terminal-card p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] ${formData.taxOption === 'both' ? 'bg-[#00ff00]/20 border-[#00ff00]' : 'bg-black/30'
+                className={`p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] border rounded-lg ${formData.taxOption === 'both'
+                    ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                    : 'bg-black/30 border-[#00ff00]/20'
                   }`}
               >
                 <Sparkles size={24} className="mx-auto mb-2 text-yellow-400" />
