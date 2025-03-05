@@ -319,13 +319,6 @@ function CreateCoinPage() {
         tokenMetadataArgs
       );
 
-      const updateTransferFeeIx = await UpdateTransferFeeInstruction(
-        connection,
-        minterPublicKey,
-        mintKeypair.publicKey,
-        tokenParams
-      );
-
       const createPoolIx = await createPoolInstruction(
         connection,
         minterPublicKey,
@@ -340,36 +333,23 @@ function CreateCoinPage() {
         poolParams
       );
 
-      let signedMintAndFeeTx: Transaction | null = null;
-      let signedCreateAndDepositPoolTx: Transaction | null = null;
-
-      const recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-      const mintAndFeeTx = new Transaction();
-      mintAndFeeTx.add(mintTokenIx);
-      mintAndFeeTx.add(updateTransferFeeIx);
-      mintAndFeeTx.feePayer = minterPublicKey;
-      mintAndFeeTx.recentBlockhash = recentBlockhash;
-      console.log(mintAndFeeTx.recentBlockhash);
-      mintAndFeeTx.partialSign(mintKeypair);
-
-      const createAndDepositPoolTx = new Transaction();
-      createAndDepositPoolTx.add(createPoolIx);
-      createAndDepositPoolTx.add(depositPoolIx);
-      createAndDepositPoolTx.feePayer = minterPublicKey;
-      createAndDepositPoolTx.recentBlockhash = recentBlockhash;
+      const updateTransferFeeIx = await UpdateTransferFeeInstruction(
+        connection,
+        minterPublicKey,
+        mintKeypair.publicKey,
+        tokenParams
+      );
 
       if (isDevnet) {
         console.log(connection.rpcEndpoint);
         setDeploymentStatus({ step: 'Preparing transactions for Devnet...', status: 'pending' });
 
-        // Split the transactions for Devnet
-        const mintAndUpdateTx = new Transaction();
-        mintAndUpdateTx.add(mintTokenIx);
-        mintAndUpdateTx.add(updateTransferFeeIx);
-        mintAndUpdateTx.feePayer = minterPublicKey;
-        mintAndUpdateTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-        mintAndUpdateTx.partialSign(mintKeypair);
+        // Split transactions for Devnet
+        const mintTx = new Transaction();
+        mintTx.add(mintTokenIx);
+        mintTx.feePayer = minterPublicKey;
+        mintTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        mintTx.partialSign(mintKeypair);
 
         const createAndDepositPoolTx = new Transaction();
         createAndDepositPoolTx.add(createPoolIx);
@@ -377,24 +357,57 @@ function CreateCoinPage() {
         createAndDepositPoolTx.feePayer = minterPublicKey;
         createAndDepositPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
+        const updateFeeTx = new Transaction();
+        updateFeeTx.add(updateTransferFeeIx);
+        updateFeeTx.feePayer = minterPublicKey;
+        updateFeeTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
         // Sign all transactions at once
-        [signedMintAndFeeTx, signedCreateAndDepositPoolTx] = await signAllTransactions([mintAndUpdateTx, createAndDepositPoolTx]);
+        const [signedMintTx, signedPoolTx, signedFeeTx] = await signAllTransactions([mintTx, createAndDepositPoolTx, updateFeeTx]);
 
         // Send transactions sequentially in Devnet
         try {
-          // 1. Mint Token and Update Fee
-          setDeploymentStatus({ step: 'Creating token with fee configured...', status: 'pending' });
-          const mintSignature = await connection.sendRawTransaction(signedMintAndFeeTx.serialize());
-          await connection.confirmTransaction(mintSignature, 'confirmed');
+          // 1. Mint Token
+          setDeploymentStatus({ step: 'Creating token...', status: 'pending' });
+          const mintSignature = await connection.sendRawTransaction(signedMintTx.serialize());
+          const mintConfirmation = await connection.confirmTransaction(mintSignature, 'finalized');
+
+          if (mintConfirmation.value.err) {
+            throw new Error(`Mint transaction failed: ${mintConfirmation.value.err}`);
+          }
+
           console.log('Mint transaction confirmed:', mintSignature);
           setDeploymentStatus({ step: 'Token created successfully', status: 'completed' });
 
+          // Add delay to ensure token account is fully initialized
+          await new Promise(resolve => setTimeout(resolve, 2000));
+
           // 2. Create Pool and Deposit
           setDeploymentStatus({ step: 'Creating liquidity pool...', status: 'pending' });
-          const createPoolSignature = await connection.sendRawTransaction(signedCreateAndDepositPoolTx.serialize());
-          await connection.confirmTransaction(createPoolSignature, 'confirmed');
-          console.log('Create pool transaction confirmed:', createPoolSignature);
+          const poolSignature = await connection.sendRawTransaction(signedPoolTx.serialize());
+          const poolConfirmation = await connection.confirmTransaction(poolSignature, 'finalized');
+
+          if (poolConfirmation.value.err) {
+            throw new Error(`Pool creation failed: ${poolConfirmation.value.err}`);
+          }
+
+          console.log('Pool creation and deposit confirmed:', poolSignature);
           setDeploymentStatus({ step: 'Liquidity pool created successfully', status: 'completed' });
+
+          // Add delay before fee update
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // 3. Update Fee
+          setDeploymentStatus({ step: 'Updating token fees...', status: 'pending' });
+          const feeSignature = await connection.sendRawTransaction(signedFeeTx.serialize());
+          const feeConfirmation = await connection.confirmTransaction(feeSignature, 'finalized');
+
+          if (feeConfirmation.value.err) {
+            throw new Error(`Fee update failed: ${feeConfirmation.value.err}`);
+          }
+
+          console.log('Fee update confirmed:', feeSignature);
+          setDeploymentStatus({ step: 'Token fees updated successfully', status: 'completed' });
 
         } catch (error: any) {
           console.error('Transaction error:', error);
@@ -410,18 +423,24 @@ function CreateCoinPage() {
         console.log('Sending transactions in Mainnet mode...');
         setDeploymentStatus({ step: 'Preparing transactions...', status: 'pending' });
 
-        // Group 1: Mint and Fee Update
-        const mintAndFeeTx = new Transaction();
-        mintAndFeeTx.add(mintTokenIx, updateTransferFeeIx);
-        mintAndFeeTx.feePayer = minterPublicKey;
-        mintAndFeeTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-        mintAndFeeTx.partialSign(mintKeypair);
+        // Group 1: Mint
+        const mintTx = new Transaction();
+        mintTx.add(mintTokenIx);
+        mintTx.feePayer = minterPublicKey;
+        mintTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        mintTx.partialSign(mintKeypair);
 
         // Group 2: Pool Creation and Deposit
-        const createAndDepositPoolTx = new Transaction();
-        createAndDepositPoolTx.add(createPoolIx, depositPoolIx);
-        createAndDepositPoolTx.feePayer = minterPublicKey;
-        createAndDepositPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        const poolTx = new Transaction();
+        poolTx.add(createPoolIx, depositPoolIx);
+        poolTx.feePayer = minterPublicKey;
+        poolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+        // Group 3: Fee Update
+        const feeTx = new Transaction();
+        feeTx.add(updateTransferFeeIx);
+        feeTx.feePayer = minterPublicKey;
+        feeTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
         // Add Jito tip if needed
         const jitoTipIx = await SystemProgram.transfer({
@@ -435,15 +454,11 @@ function CreateCoinPage() {
         jitoTipTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
         // Sign all transactions
-        const txsToSign = jitoTipTx
-          ? [mintAndFeeTx, createAndDepositPoolTx, jitoTipTx]
-          : [mintAndFeeTx, createAndDepositPoolTx];
-
+        const txsToSign = [mintTx, poolTx, feeTx, jitoTipTx];
         const signedTransactions = await signAllTransactions(txsToSign);
 
         // Send transactions using RPC batch
         try {
-
           const payload = {
             "id": 1,
             "jsonrpc": "2.0",
@@ -462,9 +477,7 @@ function CreateCoinPage() {
           });
 
           console.log(response);
-
           setDeploymentStatus({ step: 'Transactions submitted successfully', status: 'completed' });
-
           console.log('All transactions confirmed');
           setDeploymentStatus({ step: 'All transactions confirmed', status: 'completed' });
         } catch (error: any) {
@@ -773,8 +786,8 @@ function CreateCoinPage() {
                 type="button"
                 onClick={() => handleTaxTypeSelect('none')}
                 className={`p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] border rounded-lg ${formData.taxOption === 'none'
-                    ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
-                    : 'bg-black/30 border-[#00ff00]/20'
+                  ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                  : 'bg-black/30 border-[#00ff00]/20'
                   }`}
               >
                 <Timer size={24} className="mx-auto mb-2" />
@@ -786,8 +799,8 @@ function CreateCoinPage() {
                 type="button"
                 onClick={() => handleTaxTypeSelect('distribute')}
                 className={`p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] border rounded-lg ${formData.taxOption === 'distribute'
-                    ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
-                    : 'bg-black/30 border-[#00ff00]/20'
+                  ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                  : 'bg-black/30 border-[#00ff00]/20'
                   }`}
               >
                 <Gift size={24} className="mx-auto mb-2 text-green-400" />
@@ -799,8 +812,8 @@ function CreateCoinPage() {
                 type="button"
                 onClick={() => handleTaxTypeSelect('burn')}
                 className={`p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] border rounded-lg ${formData.taxOption === 'burn'
-                    ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
-                    : 'bg-black/30 border-[#00ff00]/20'
+                  ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                  : 'bg-black/30 border-[#00ff00]/20'
                   }`}
               >
                 <Flame size={24} className="mx-auto mb-2 text-red-400" />
@@ -812,8 +825,8 @@ function CreateCoinPage() {
                 type="button"
                 onClick={() => handleTaxTypeSelect('both')}
                 className={`p-4 text-center cursor-pointer transition-all duration-200 hover:scale-[1.02] border rounded-lg ${formData.taxOption === 'both'
-                    ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
-                    : 'bg-black/30 border-[#00ff00]/20'
+                  ? 'bg-[#00ff00]/10 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                  : 'bg-black/30 border-[#00ff00]/20'
                   }`}
               >
                 <Sparkles size={24} className="mx-auto mb-2 text-yellow-400" />

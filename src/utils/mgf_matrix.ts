@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/mgf_matrix.json`.
  */
 export const MgfMatrix = {
-  "address": "HR5LPG1EYDrL5YL12P9exaXXusjMGKrRyLrLBpFibcBR",
+  "address": "5zH1SBCAquwWDahpxXRoaKmakepoQ9gKMUR9tRygXCcy",
   "metadata": {
     "name": "mgfMatrix",
     "version": "0.1.0",
@@ -36,6 +36,14 @@ export const MgfMatrix = {
             "The user performing the swap"
           ],
           "signer": true
+        },
+        {
+          "name": "platformCranker",
+          "docs": [
+            "The cranker account to receive the fee"
+          ],
+          "writable": true,
+          "address": "FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W"
         },
         {
           "name": "ammConfig",
@@ -107,6 +115,13 @@ export const MgfMatrix = {
           "address": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
         },
         {
+          "name": "systemProgram",
+          "docs": [
+            "The system program"
+          ],
+          "address": "11111111111111111111111111111111"
+        },
+        {
           "name": "inputVaultMint",
           "docs": [
             "The mint of token vault 0"
@@ -154,29 +169,7 @@ export const MgfMatrix = {
         },
         {
           "name": "platformPoolAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "address": "BhL1wh6cfQcr22cf6bvAvM5Jv3KCfVohgTPGLtf9eXAE"
         },
         {
           "name": "ammConfig",
@@ -419,29 +412,8 @@ export const MgfMatrix = {
         },
         {
           "name": "platformPoolAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "writable": true,
+          "address": "BhL1wh6cfQcr22cf6bvAvM5Jv3KCfVohgTPGLtf9eXAE"
         },
         {
           "name": "tokenMint"
@@ -490,37 +462,7 @@ export const MgfMatrix = {
           "name": "positionNftAccount",
           "docs": [
             "This account created in the contract by cpi to avoid large stack variables"
-          ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  110,
-                  102,
-                  116,
-                  95,
-                  97,
-                  99,
-                  99,
-                  111,
-                  117,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint"
-              }
-            ]
-          }
+          ]
         },
         {
           "name": "metadataAccount",
@@ -1109,33 +1051,6 @@ export const MgfMatrix = {
           }
         },
         {
-          "name": "platformPoolAuthority",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -1315,6 +1230,14 @@ export const MgfMatrix = {
           "signer": true
         },
         {
+          "name": "platformCranker",
+          "docs": [
+            "The cranker account to receive the fee"
+          ],
+          "writable": true,
+          "address": "FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W"
+        },
+        {
           "name": "ammConfig",
           "docs": [
             "The factory state to read protocol fees"
@@ -1384,6 +1307,13 @@ export const MgfMatrix = {
           "address": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
         },
         {
+          "name": "systemProgram",
+          "docs": [
+            "The system program"
+          ],
+          "address": "11111111111111111111111111111111"
+        },
+        {
           "name": "inputVaultMint",
           "docs": [
             "The mint of token vault 0"
@@ -1430,12 +1360,13 @@ export const MgfMatrix = {
           "signer": true
         },
         {
-          "name": "tokenMint"
+          "name": "tokenMint",
+          "writable": true
         },
         {
           "name": "platformCranker",
-          "address": "FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W",
-          "writable": true
+          "writable": true,
+          "address": "FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W"
         },
         {
           "name": "associatedTokenProgram",
@@ -1500,19 +1431,6 @@ export const MgfMatrix = {
         98,
         188,
         123
-      ]
-    },
-    {
-      "name": "platformPoolAuthority",
-      "discriminator": [
-        235,
-        244,
-        138,
-        78,
-        246,
-        210,
-        91,
-        249
       ]
     },
     {
@@ -1735,13 +1653,6 @@ export const MgfMatrix = {
     },
     {
       "name": "platformMintAuthority",
-      "type": {
-        "kind": "struct",
-        "fields": []
-      }
-    },
-    {
-      "name": "platformPoolAuthority",
       "type": {
         "kind": "struct",
         "fields": []
@@ -2170,7 +2081,7 @@ export const MgfMatrix = {
     {
       "name": "crankerFee",
       "type": "u64",
-      "value": "10000000"
+      "value": "350000"
     },
     {
       "name": "memeDecimals",

@@ -103,7 +103,7 @@ export async function createMintTokenInstruction(
 export async function createPoolInstruction(
     connection: Connection,
     payer: PublicKey,
-    mintKeypair: PublicKey,
+    mintPubkey: PublicKey,
     poolParams: PoolParams
 ): Promise<TransactionInstruction> {
     const provider = new AnchorProvider(
@@ -118,19 +118,19 @@ export async function createPoolInstruction(
     const CLMM_PROGRAM_ID = new PublicKey("devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH");
     const SOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
     const POOL_CONFIG = new PublicKey("CQYbhr6amxUER4p5SC44C63R4qw4NFc9Z4Db9vF4tZwG");
+    const platformPoolAuthority = new PublicKey("BhL1wh6cfQcr22cf6bvAvM5Jv3KCfVohgTPGLtf9eXAE");
+
+    // Determine token ordering based on lexicographical comparison
+    const token0 = SOL_MINT;
+    const token1 = mintPubkey;
 
     // Get PDAs
-    const [platformPoolAuthority] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool_authority")],
-        program.programId
-    );
-
     const [poolState] = PublicKey.findProgramAddressSync(
         [
             Buffer.from("pool"),
             POOL_CONFIG.toBuffer(),
-            mintKeypair.toBuffer(),
-            SOL_MINT.toBuffer()
+            token0.toBuffer(),
+            token1.toBuffer()
         ],
         CLMM_PROGRAM_ID
     );
@@ -140,7 +140,7 @@ export async function createPoolInstruction(
         [
             Buffer.from("pool_vault"),
             poolState.toBuffer(),
-            mintKeypair.toBuffer()
+            token0.toBuffer()
         ],
         CLMM_PROGRAM_ID
     );
@@ -149,7 +149,7 @@ export async function createPoolInstruction(
         [
             Buffer.from("pool_vault"),
             poolState.toBuffer(),
-            SOL_MINT.toBuffer()
+            token1.toBuffer()
         ],
         CLMM_PROGRAM_ID
     );
@@ -172,15 +172,14 @@ export async function createPoolInstruction(
             platformPoolAuthority,
             ammConfig: POOL_CONFIG,
             poolState,
-            tokenMint: mintKeypair,
-            tokenMint0: SOL_MINT,
-            tokenMint1: mintKeypair,
+            tokenMint: mintPubkey,
+            tokenMint0: token0,
+            tokenMint1: token1,
             tokenVault0,
             tokenVault1,
             observationState: observationStateKeypair.publicKey,
             tickArrayBitmap,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            tokenProgram2022: TOKEN_2022_PROGRAM_ID,
+            tokenProgram: TOKEN_2022_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
             clmmProgram: CLMM_PROGRAM_ID,
             rent: SYSVAR_RENT_PUBKEY,
@@ -211,10 +210,7 @@ export async function createDepositPoolInstruction(
     const METADATA_PROGRAM = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
 
     // Get PDAs
-    const [platformPoolAuthority] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool_authority")],
-        program.programId
-    );
+    const platformPoolAuthority = new PublicKey("BhL1wh6cfQcr22cf6bvAvM5Jv3KCfVohgTPGLtf9eXAE");
 
     const [poolState] = PublicKey.findProgramAddressSync(
         [
