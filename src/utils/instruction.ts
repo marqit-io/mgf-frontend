@@ -120,9 +120,14 @@ export async function createPoolInstruction(
     const POOL_CONFIG = new PublicKey("CQYbhr6amxUER4p5SC44C63R4qw4NFc9Z4Db9vF4tZwG");
     const platformPoolAuthority = new PublicKey("BhL1wh6cfQcr22cf6bvAvM5Jv3KCfVohgTPGLtf9eXAE");
 
-    // Determine token ordering based on lexicographical comparison
-    const token0 = SOL_MINT;
-    const token1 = mintPubkey;
+    // Check if mint token can be token0 (must be smaller than SOL_MINT)
+    if (mintPubkey.toBase58() >= SOL_MINT.toBase58()) {
+        throw new Error("Mint token address must be smaller than SOL address to satisfy pool constraints");
+    }
+
+    // Set token ordering
+    const token0 = mintPubkey;  // Our token must be token0
+    const token1 = SOL_MINT;    // SOL must be token1
 
     // Get PDAs
     const [poolState] = PublicKey.findProgramAddressSync(
@@ -179,7 +184,8 @@ export async function createPoolInstruction(
             tokenVault1,
             observationState: observationStateKeypair.publicKey,
             tickArrayBitmap,
-            tokenProgram: TOKEN_2022_PROGRAM_ID,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            token2022Program: TOKEN_2022_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
             clmmProgram: CLMM_PROGRAM_ID,
             rent: SYSVAR_RENT_PUBKEY,
