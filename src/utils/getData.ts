@@ -24,8 +24,8 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
 
         // Set basic token data from the first API
         tokenData = {
-            name: response.metadata.name,
-            ticker: response.metadata.symbol,
+            name: response.metadata?.name || response.name,
+            ticker: response.metadata?.symbol || response.symbol,
             price: response.price,
             marketCap: response.market_cap,
             holders: response.holder,
@@ -34,14 +34,14 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
             priceChange24h: response.price_change_24h,
             contractAddress: response.address,
             contractAddressShort: response.address.slice(0, 4) + '...' + response.address.slice(-4),
-            profileImage: response.metadata.image,
+            profileImage: response.metadata?.image || response.icon,
             totalSupply: response.supply,
             socialLinks: {
-                telegram: response.metadata.extensions ? response.metadata.extensions.telegram : response.metadata.telegram,
-                website: response.metadata.extensions ? response.metadata.extensions.website : response.metadata.website,
-                twitter: response.metadata.extensions ? response.metadata.extensions.twitter : response.metadata.twitter
+                telegram: response.metadata?.extensions ? response.metadata?.extensions.telegram : response.metadata?.telegram,
+                website: response.metadata?.extensions ? response.metadata?.extensions.website : response.metadata?.website,
+                twitter: response.metadata?.extensions ? response.metadata?.extensions.twitter : response.metadata?.twitter
             },
-            description: response.metadata.description,
+            description: response.metadata?.description || response.description,
         };
     } catch (error) {
         console.error('Error fetching token metadata:', error);
@@ -51,7 +51,7 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
     // Second API call - pool address
     try {
         const wsolAddress = 'So11111111111111111111111111111111111111112';
-        poolAddress = (await axios.get(`https://pro-api.solscan.io/v2.0/token/markets/?token[]=${mintAccount.toString()}&token[]=${wsolAddress}`)).data.data[0].pool_id;
+        poolAddress = (await axios.get(`https://pro-api.solscan.io/v2.0/token/markets/?token[]=${mintAccount.toString()}&token[]=${wsolAddress}`)).data.data.filter((item: any) => item.program_id == "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK")[0].pool_id;
         tokenData.poolAddress = poolAddress;
     } catch (error) {
         console.error('Error fetching pool address:', error);

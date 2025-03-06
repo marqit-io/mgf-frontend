@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Timer, ArrowUpRight, ArrowDownRight, Copy, Check, Sparkles, Globe, X, MessageCircle, ExternalLink } from 'lucide-react';
-import { PriceChart } from '../components/PriceChart';
+import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
 import { CommentSection } from '../components/CommentSection';
 import { PublicKey } from '@solana/web3.js';
@@ -353,7 +353,7 @@ function TokenProfilePage() {
           {/* Chart */}
           <div className="lg:col-span-2">
             {tokenData ? (
-              <PriceChart poolAddress={tokenData.poolAddress} />
+              <PriceChartWidget tokenAddress={tokenAddress.toString()} />
             ) : (
               <div className="w-full h-full bg-white/10 animate-pulse" />
             )}
