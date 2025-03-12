@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/mgf_matrix.json`.
  */
 export const MgfMatrix = {
-  "address": "5zH1SBCAquwWDahpxXRoaKmakepoQ9gKMUR9tRygXCcy",
+  "address": "mgfRigZ8hm5HaybTjTQVo6touScR42siLMV891w85PK",
   "metadata": {
     "name": "mgfMatrix",
     "version": "0.1.0",
@@ -43,7 +43,7 @@ export const MgfMatrix = {
             "The cranker account to receive the fee"
           ],
           "writable": true,
-          "address": "FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W"
+          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
         },
         {
           "name": "ammConfig",
@@ -150,6 +150,30 @@ export const MgfMatrix = {
       ]
     },
     {
+      "name": "closeAccount",
+      "discriminator": [
+        125,
+        255,
+        149,
+        14,
+        110,
+        34,
+        72,
+        24
+      ],
+      "accounts": [
+        {
+          "name": "account",
+          "writable": true
+        },
+        {
+          "name": "destination",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "createPool",
       "discriminator": [
         233,
@@ -168,10 +192,6 @@ export const MgfMatrix = {
           "signer": true
         },
         {
-          "name": "platformPoolAuthority",
-          "address": "BhL1wh6cfQcr22cf6bvAvM5Jv3KCfVohgTPGLtf9eXAE"
-        },
-        {
           "name": "ammConfig",
           "docs": [
             "Which config the pool belongs to."
@@ -179,36 +199,7 @@ export const MgfMatrix = {
         },
         {
           "name": "poolState",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "ammConfig"
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint0"
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint1"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "clmmProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "tokenMint"
@@ -227,73 +218,11 @@ export const MgfMatrix = {
         },
         {
           "name": "tokenVault0",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poolState"
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint0"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "clmmProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "tokenVault1",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poolState"
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint1"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "clmmProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "observationState",
@@ -301,64 +230,13 @@ export const MgfMatrix = {
         },
         {
           "name": "tickArrayBitmap",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  116,
-                  105,
-                  99,
-                  107,
-                  95,
-                  97,
-                  114,
-                  114,
-                  97,
-                  121,
-                  95,
-                  98,
-                  105,
-                  116,
-                  109,
-                  97,
-                  112,
-                  95,
-                  101,
-                  120,
-                  116,
-                  101,
-                  110,
-                  115,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poolState"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "clmmProgram"
-            }
-          }
+          "writable": true
         },
         {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "token0Program"
         },
         {
-          "name": "token2022Program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+          "name": "token1Program"
         },
         {
           "name": "systemProgram",
@@ -416,99 +294,16 @@ export const MgfMatrix = {
           "signer": true
         },
         {
-          "name": "platformPoolAuthority",
-          "writable": true,
-          "address": "BhL1wh6cfQcr22cf6bvAvM5Jv3KCfVohgTPGLtf9eXAE"
-        },
-        {
-          "name": "tokenMint"
-        },
-        {
-          "name": "tokenMint0"
-        },
-        {
-          "name": "tokenMint1"
-        },
-        {
           "name": "positionNftMint",
           "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  110,
-                  102,
-                  116,
-                  95,
-                  109,
-                  105,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint"
-              },
-              {
-                "kind": "account",
-                "path": "platformPoolAuthority"
-              }
-            ]
-          }
+          "signer": true
         },
         {
           "name": "positionNftAccount",
           "docs": [
             "This account created in the contract by cpi to avoid large stack variables"
-          ]
-        },
-        {
-          "name": "metadataAccount",
-          "docs": [
-            "To store metaplex metadata"
           ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  110,
-                  102,
-                  116,
-                  95,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint"
-              },
-              {
-                "kind": "account",
-                "path": "platformPoolAuthority"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "poolState",
@@ -519,323 +314,42 @@ export const MgfMatrix = {
         },
         {
           "name": "protocolPosition",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  115,
-                  105,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poolState"
-              },
-              {
-                "kind": "arg",
-                "path": "tickLowerIndex"
-              },
-              {
-                "kind": "arg",
-                "path": "tickUpperIndex"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "clmmProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "tickArrayLower",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  116,
-                  105,
-                  99,
-                  107,
-                  95,
-                  97,
-                  114,
-                  114,
-                  97,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poolState"
-              },
-              {
-                "kind": "arg",
-                "path": "tickArrayLowerStartIndex"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "clmmProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "tickArrayUpper",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  116,
-                  105,
-                  99,
-                  107,
-                  95,
-                  97,
-                  114,
-                  114,
-                  97,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "poolState"
-              },
-              {
-                "kind": "arg",
-                "path": "tickArrayUpperStartIndex"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "clmmProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "personalPosition",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  115,
-                  105,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "positionNftMint"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "clmmProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "tokenAccount0",
           "docs": [
             "The token_0 account deposit token to the pool"
           ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "minter"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint0"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
+          "writable": true
         },
         {
           "name": "tokenAccount1",
           "docs": [
             "The token_1 account deposit token to the pool"
           ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "minter"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "tokenMint1"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
+          "writable": true
+        },
+        {
+          "name": "vault0Mint"
+        },
+        {
+          "name": "vault1Mint",
+          "docs": [
+            "The mint of token vault 1"
+          ]
         },
         {
           "name": "tokenVault0",
@@ -873,30 +387,15 @@ export const MgfMatrix = {
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
-          "name": "metadataProgram",
-          "docs": [
-            "Program to create NFT metadata"
-          ],
-          "address": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-        },
-        {
-          "name": "tokenProgram",
+          "name": "tokenProgram2022",
           "docs": [
             "Program to create mint account and mint tokens"
           ],
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "vault0Mint",
-          "docs": [
-            "The mint of token vault 0"
-          ]
-        },
-        {
-          "name": "vault1Mint",
-          "docs": [
-            "The mint of token vault 1"
-          ]
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": [
@@ -927,16 +426,6 @@ export const MgfMatrix = {
         {
           "name": "amount1Max",
           "type": "u64"
-        },
-        {
-          "name": "withMatedata",
-          "type": "bool"
-        },
-        {
-          "name": "baseFlag",
-          "type": {
-            "option": "bool"
-          }
         }
       ]
     },
@@ -1015,31 +504,39 @@ export const MgfMatrix = {
           }
         },
         {
-          "name": "platformTokenTransferFeeAuthority",
-          "writable": true,
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "lockPool",
+      "discriminator": [
+        154,
+        202,
+        217,
+        175,
+        178,
+        161,
+        30,
+        152
+      ],
+      "accounts": [
+        {
+          "name": "authority",
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
-                  116,
+                  112,
+                  114,
                   111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  116,
+                  103,
                   114,
                   97,
-                  110,
-                  115,
-                  102,
-                  101,
-                  114,
-                  95,
-                  102,
-                  101,
-                  101,
+                  109,
                   95,
                   97,
                   117,
@@ -1049,15 +546,153 @@ export const MgfMatrix = {
                   114,
                   105,
                   116,
-                  121
+                  121,
+                  95,
+                  115,
+                  101,
+                  101,
+                  100
                 ]
               }
-            ]
+            ],
+            "program": {
+              "kind": "account",
+              "path": "lockingProgram"
+            }
           }
         },
         {
+          "name": "payer",
+          "docs": [
+            "Pay to create account lamports"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "feeNftOwner",
+          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
+        },
+        {
+          "name": "positionNftAccount",
+          "docs": [
+            "The token account for the tokenized position"
+          ],
+          "writable": true
+        },
+        {
+          "name": "personalPosition",
+          "docs": [
+            "Lock personal position associated with position_nft_account's mint"
+          ]
+        },
+        {
+          "name": "positionNftMint",
+          "docs": [
+            "Position NFT mint to create a ATA `locked_nft_account` belongs to program"
+          ]
+        },
+        {
+          "name": "lockedNftAccount",
+          "writable": true
+        },
+        {
+          "name": "lockedPosition",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  99,
+                  107,
+                  101,
+                  100,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "feeNftMint"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "lockingProgram"
+            }
+          }
+        },
+        {
+          "name": "feeNftMint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "feeNftAccount",
+          "writable": true
+        },
+        {
+          "name": "metadataAccount",
+          "docs": [
+            "To store metaplex metadata"
+          ],
+          "writable": true
+        },
+        {
+          "name": "metadataProgram",
+          "docs": [
+            "Program to create NFT metadata account"
+          ],
+          "address": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "docs": [
+            "Program to create an ATA for receiving fee NFT"
+          ],
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "rent",
+          "docs": [
+            "Sysvar for token mint and ATA creation"
+          ],
+          "address": "SysvarRent111111111111111111111111111111111"
+        },
+        {
+          "name": "feeNftTokenProgram",
+          "docs": [
+            "Token program fee NFT mint/account belongs to"
+          ],
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "lockedNftTokenProgram",
+          "docs": [
+            "Token program position NFT mint/account belongs to"
+          ],
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
           "name": "systemProgram",
+          "docs": [
+            "Program to create new account"
+          ],
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "lockingProgram",
+          "address": "DLockwT7X7sxtLmGH9g5kmfcjaBtncdbUmi738m5bvQC"
         }
       ],
       "args": []
@@ -1077,6 +712,11 @@ export const MgfMatrix = {
       "accounts": [
         {
           "name": "minter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mintAccount",
           "writable": true,
           "signer": true
         },
@@ -1134,34 +774,85 @@ export const MgfMatrix = {
           }
         },
         {
-          "name": "platformTokenAccount",
+          "name": "minterTokenAccount",
           "writable": true
         },
         {
-          "name": "platformTokenTransferFeeAuthority",
+          "name": "minterDistributionTokenAccount",
+          "writable": true,
+          "optional": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "minter"
+              },
+              {
+                "kind": "account",
+                "path": "distributionTokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "distributionMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "platformTokenFeeWithdrawAuthority",
+          "docs": [
+            "CHECK Initiated by executor program"
+          ],
           "pda": {
             "seeds": [
               {
                 "kind": "const",
                 "value": [
+                  119,
+                  105,
                   116,
-                  111,
-                  107,
-                  101,
-                  110,
-                  95,
-                  116,
+                  104,
+                  100,
                   114,
                   97,
-                  110,
-                  115,
-                  102,
-                  101,
-                  114,
-                  95,
-                  102,
-                  101,
-                  101,
+                  119,
                   95,
                   97,
                   117,
@@ -1178,13 +869,38 @@ export const MgfMatrix = {
           }
         },
         {
-          "name": "mintAccount",
+          "name": "distributionMint",
+          "optional": true
+        },
+        {
+          "name": "tokenCollectionVault",
+          "writable": true
+        },
+        {
+          "name": "tokenCollectionAccount",
+          "writable": true
+        },
+        {
+          "name": "distributionTokenAccount",
           "writable": true,
-          "signer": true
+          "optional": true
+        },
+        {
+          "name": "platformFeeAccount",
+          "optional": true
+        },
+        {
+          "name": "platformFeeTokenAccount",
+          "writable": true,
+          "optional": true
         },
         {
           "name": "associatedTokenProgram",
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "distributionTokenProgram",
+          "optional": true
         },
         {
           "name": "tokenProgram",
@@ -1193,6 +909,10 @@ export const MgfMatrix = {
         {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "executorProgram",
+          "address": "mgf7APo6tTMvLA6xTwzBZUthP3B1Ait5v3xiVqDDipN"
         },
         {
           "name": "rent",
@@ -1205,6 +925,14 @@ export const MgfMatrix = {
           "type": {
             "defined": {
               "name": "tokenMetadataArgs"
+            }
+          }
+        },
+        {
+          "name": "tokenParams",
+          "type": {
+            "defined": {
+              "name": "tokenParams"
             }
           }
         }
@@ -1240,7 +968,7 @@ export const MgfMatrix = {
             "The cranker account to receive the fee"
           ],
           "writable": true,
-          "address": "FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W"
+          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
         },
         {
           "name": "ammConfig",
@@ -1347,53 +1075,101 @@ export const MgfMatrix = {
       ]
     },
     {
-      "name": "updateTransferFee",
+      "name": "wrapSol",
       "discriminator": [
-        135,
-        106,
-        57,
-        77,
-        93,
-        247,
-        210,
-        158
+        47,
+        62,
+        155,
+        172,
+        131,
+        205,
+        37,
+        201
       ],
       "accounts": [
         {
-          "name": "minter",
+          "name": "payer",
           "writable": true,
           "signer": true
         },
         {
-          "name": "tokenMint",
-          "writable": true
-        },
-        {
-          "name": "platformCranker",
+          "name": "tokenAccount",
           "writable": true,
-          "address": "FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W"
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "solMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
-          "name": "associatedTokenProgram",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+          "name": "solMint",
+          "address": "So11111111111111111111111111111111111111112"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "tokenProgram",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [
         {
-          "name": "tokenParams",
-          "type": {
-            "defined": {
-              "name": "tokenParams"
-            }
-          }
+          "name": "amount",
+          "type": "u64"
         }
       ]
     }
@@ -1426,6 +1202,19 @@ export const MgfMatrix = {
       ]
     },
     {
+      "name": "personalPositionState",
+      "discriminator": [
+        70,
+        111,
+        150,
+        126,
+        230,
+        15,
+        25,
+        117
+      ]
+    },
+    {
       "name": "platformMintAuthority",
       "discriminator": [
         235,
@@ -1452,19 +1241,6 @@ export const MgfMatrix = {
       ]
     },
     {
-      "name": "platformTokenTransferFeeAuthority",
-      "discriminator": [
-        48,
-        48,
-        224,
-        28,
-        170,
-        44,
-        199,
-        183
-      ]
-    },
-    {
       "name": "poolState",
       "discriminator": [
         247,
@@ -1475,6 +1251,73 @@ export const MgfMatrix = {
         195,
         222,
         70
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "poolCreated",
+      "discriminator": [
+        202,
+        44,
+        41,
+        88,
+        104,
+        220,
+        157,
+        82
+      ]
+    },
+    {
+      "name": "poolLocked",
+      "discriminator": [
+        222,
+        161,
+        104,
+        177,
+        64,
+        73,
+        79,
+        149
+      ]
+    },
+    {
+      "name": "poolNftMinted",
+      "discriminator": [
+        70,
+        79,
+        139,
+        114,
+        83,
+        56,
+        101,
+        91
+      ]
+    },
+    {
+      "name": "tokenMinted",
+      "discriminator": [
+        129,
+        241,
+        43,
+        130,
+        199,
+        120,
+        217,
+        181
+      ]
+    },
+    {
+      "name": "tokenSwapped",
+      "discriminator": [
+        177,
+        196,
+        232,
+        183,
+        122,
+        71,
+        58,
+        228
       ]
     }
   ],
@@ -1657,6 +1500,106 @@ export const MgfMatrix = {
       }
     },
     {
+      "name": "personalPositionState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "docs": [
+              "Bump to identify PDA"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "nftMint",
+            "docs": [
+              "Mint address of the tokenized position"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "poolId",
+            "docs": [
+              "The ID of the pool with which this token is connected"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "tickLowerIndex",
+            "docs": [
+              "The lower bound tick of the position"
+            ],
+            "type": "i32"
+          },
+          {
+            "name": "tickUpperIndex",
+            "docs": [
+              "The upper bound tick of the position"
+            ],
+            "type": "i32"
+          },
+          {
+            "name": "liquidity",
+            "docs": [
+              "The amount of liquidity owned by this position"
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "feeGrowthInside0LastX64",
+            "docs": [
+              "The token_0 fee growth of the aggregate position as of the last action on the individual position"
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "feeGrowthInside1LastX64",
+            "docs": [
+              "The token_1 fee growth of the aggregate position as of the last action on the individual position"
+            ],
+            "type": "u128"
+          },
+          {
+            "name": "tokenFeesOwed0",
+            "docs": [
+              "The fees owed to the position owner in token_0, as of the last computation"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "tokenFeesOwed1",
+            "docs": [
+              "The fees owed to the position owner in token_1, as of the last computation"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "rewardInfos",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "positionRewardInfo"
+                  }
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "padding",
+            "type": {
+              "array": [
+                "u64",
+                8
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "platformMintAuthority",
       "type": {
         "kind": "struct",
@@ -1671,10 +1614,71 @@ export const MgfMatrix = {
       }
     },
     {
-      "name": "platformTokenTransferFeeAuthority",
+      "name": "poolCreated",
       "type": {
         "kind": "struct",
-        "fields": []
+        "fields": [
+          {
+            "name": "tokenMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "quoteToken",
+            "type": "pubkey"
+          },
+          {
+            "name": "poolId",
+            "type": "string"
+          },
+          {
+            "name": "token0Mint",
+            "type": "string"
+          },
+          {
+            "name": "token1Mint",
+            "type": "string"
+          },
+          {
+            "name": "token0Vault",
+            "type": "string"
+          },
+          {
+            "name": "token1Vault",
+            "type": "string"
+          },
+          {
+            "name": "observationState",
+            "type": "string"
+          },
+          {
+            "name": "tickArrayBitmap",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "poolLocked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nftMint",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "poolNftMinted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nftMint",
+            "type": "pubkey"
+          }
+        ]
       }
     },
     {
@@ -1939,6 +1943,22 @@ export const MgfMatrix = {
       }
     },
     {
+      "name": "positionRewardInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "growthInsideLastX64",
+            "type": "u128"
+          },
+          {
+            "name": "rewardAmountOwed",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "rewardInfo",
       "serialization": "bytemuckunsafe",
       "repr": {
@@ -2050,21 +2070,45 @@ export const MgfMatrix = {
       }
     },
     {
+      "name": "tokenMinted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tokenMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
       "name": "tokenParams",
       "type": {
         "kind": "struct",
         "fields": [
           {
+            "name": "isDistributeToken",
+            "type": "bool"
+          },
+          {
             "name": "transferFeeBps",
-            "type": "i16"
+            "type": "u16"
           },
           {
             "name": "distributeFeeBps",
-            "type": "i16"
+            "type": "u16"
           },
           {
             "name": "burnFeeBps",
-            "type": "i16"
+            "type": "u16"
           },
           {
             "name": "tokenRewardMint",
@@ -2077,6 +2121,22 @@ export const MgfMatrix = {
             "type": {
               "option": "i32"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "tokenSwapped",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "tokenMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "destinationTokenAccount",
+            "type": "pubkey"
           }
         ]
       }
@@ -2096,7 +2156,12 @@ export const MgfMatrix = {
     {
       "name": "memeSupply",
       "type": "u64",
-      "value": "1000000000"
+      "value": "1000000000000000000"
+    },
+    {
+      "name": "mintAuthoritySeed",
+      "type": "string",
+      "value": "\"mint_authority\""
     },
     {
       "name": "poolConfig",
@@ -2112,6 +2177,11 @@ export const MgfMatrix = {
       "name": "solMint",
       "type": "pubkey",
       "value": "So11111111111111111111111111111111111111112"
+    },
+    {
+      "name": "tokenAuthoritySeed",
+      "type": "string",
+      "value": "\"token_authority\""
     },
     {
       "name": "usdcMint",

@@ -2,30 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown, LineChart, Sparkles, Zap, Timer, Flame, Gift, ChevronDown, ChevronUp, ArrowUpRight, Twitter } from 'lucide-react';
 import { getTopGlitchTokens, getTotalStats } from '../utils/getData';
-
-interface LiveFeedItem {
-  id: string;
-  timestamp: string;
-  name: string;
-  symbol: string;
-  image: string;
-  creator: string;
-  tax: {
-    enabled: boolean;
-    total: number;
-    distribution: {
-      burn: number;
-      reward: number;
-    };
-  };
-}
+import { subscribeToTokenTrades, MintInfo } from '../utils/mintLiveFeed';
 
 function HomePage() {
   const navigate = useNavigate();
   const [timeframe, setTimeframe] = useState('24h');
   const [sortBy, setSortBy] = useState('glitches');
   const [glitchType, setGlitchType] = useState<'ALL' | 'BURN' | 'REWARD' | 'MIX' | 'NONE'>('ALL');
-  const [liveFeed, setLiveFeed] = useState<LiveFeedItem[]>([]);
+  const [liveFeed, setLiveFeed] = useState<MintInfo[]>([]);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [tokens, setTokens] = useState<any[]>([]);
   const [totalStats, setTotalStats] = useState<any>(null);
@@ -82,91 +66,11 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    const mockImages = [
-      'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=64&h=64',
-      'https://images.unsplash.com/photo-1639762681057-408e52192e55?auto=format&fit=crop&q=80&w=64&h=64',
-      'https://images.unsplash.com/photo-1639762681297-b1d4401b7fcd?auto=format&fit=crop&q=80&w=64&h=64',
-    ];
+    const unSubscribe = subscribeToTokenTrades((mint: MintInfo) => {
+      setLiveFeed(prev => [...prev, mint].slice(0, 30));
+    });
 
-    const generateLiveFeedItem = (): LiveFeedItem => {
-      const hasTax = Math.random() > 0.3;
-      const totalTax = hasTax ? Math.floor(Math.random() * 15) + 1 : 0;
-
-      const distributionType = Math.random();
-      let burnRatio;
-
-      if (distributionType < 0.33) {
-        burnRatio = 100;
-      } else if (distributionType < 0.66) {
-        burnRatio = 0;
-      } else {
-        burnRatio = Math.floor(Math.random() * 80) + 10;
-      }
-
-      return {
-        id: Math.random().toString(36).substring(7),
-        timestamp: new Date().toISOString(),
-        name: `Token${Math.floor(Math.random() * 1000)}`,
-        symbol: `TKN${Math.floor(Math.random() * 100)}`,
-        image: mockImages[Math.floor(Math.random() * mockImages.length)],
-        creator: `${Math.random().toString(36).substring(7)}...${Math.random().toString(36).substring(4)}`,
-        tax: {
-          enabled: hasTax,
-          total: totalTax,
-          distribution: {
-            burn: burnRatio,
-            reward: 100 - burnRatio,
-          },
-        },
-      };
-    };
-
-    const generateInitialFeed = () => {
-      const items: LiveFeedItem[] = [];
-
-      const types = [
-        { burn: 100, reward: 0 },
-        { burn: 0, reward: 100 },
-        { burn: 60, reward: 40 },
-      ];
-
-      types.forEach(distribution => {
-        items.push({
-          id: Math.random().toString(36).substring(7),
-          timestamp: new Date().toISOString(),
-          name: `Token${Math.floor(Math.random() * 1000)}`,
-          symbol: `TKN${Math.floor(Math.random() * 100)}`,
-          image: mockImages[Math.floor(Math.random() * mockImages.length)],
-          creator: `${Math.random().toString(36).substring(7)}...${Math.random().toString(36).substring(4)}`,
-          tax: {
-            enabled: true,
-            total: Math.floor(Math.random() * 15) + 1,
-            distribution: {
-              burn: distribution.burn,
-              reward: distribution.reward,
-            },
-          },
-        });
-      });
-
-      while (items.length < 20) {
-        items.push(generateLiveFeedItem());
-      }
-
-      return items;
-    };
-
-    const initialItems = generateInitialFeed();
-    setLiveFeed(initialItems);
-
-    const interval = setInterval(() => {
-      setLiveFeed(prev => {
-        const newItem = generateLiveFeedItem();
-        return [newItem, ...prev].slice(0, 50);
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
+    return unSubscribe;
   }, []);
 
   const getActionColor = (token: typeof tokens[0]) => {
@@ -247,7 +151,7 @@ function HomePage() {
     navigate(`/token/${tokenId}`);
   };
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString();
   };
@@ -577,12 +481,12 @@ function HomePage() {
           <div className="space-y-2">
             {liveFeed.map((item) => (
               <div
-                key={item.id}
+                key={item.mintAddress}
                 className="flex items-start gap-3 p-3 border-t border-[#00ff00]/20 first:border-t-0 hover:bg-[#00ff00]/5 transition-colors cursor-pointer bg-black/30"
-                onClick={() => navigate(`/token/${item.id}`)}
+                onClick={() => navigate(`/token/${item.mintAddress}`)}
               >
                 <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-[#00ff00]/30">
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                 </div>
 
                 <div className="flex-grow min-w-0">
@@ -595,13 +499,13 @@ function HomePage() {
                   <div className="flex items-center gap-2 text-sm whitespace-nowrap overflow-hidden">
                     <Timer size={14} className="text-[#00ff00] flex-shrink-0" />
                     <span className="opacity-70">Tax:</span>
-                    {getTaxDistributionLabel(item.tax || { enabled: false, total: 0, distribution: { burn: 0, reward: 0 } })}
+                    {getTaxDistributionLabel({ enabled: item.taxRate != 0, total: item.taxRate, distribution: { burn: item.burnRate, reward: item.distributionRate } })}
                   </div>
                 </div>
 
                 <div className="flex flex-col items-end text-xs">
                   <span className="opacity-70 whitespace-nowrap">{formatTime(item.timestamp)}</span>
-                  <span className="font-mono">{item.creator}</span>
+                  <span className="font-mono">{item.mintAddress}</span>
                 </div>
               </div>
             ))}

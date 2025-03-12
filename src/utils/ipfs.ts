@@ -28,8 +28,6 @@ export async function uploadTokenMetadata(metadata: TokenMetadata): Promise<stri
       pinataGatewayKey: import.meta.env.VITE_PINATA_GATEWAY_KEY,
     });
 
-    debugger;
-
     const imageResult = await pinata.upload.file(metadata.image);
     const imageUrl = `https://gateway.pinata.cloud/ipfs/${imageResult.IpfsHash}`;
 
