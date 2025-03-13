@@ -38,18 +38,14 @@ export const MgfMatrix = {
           "signer": true
         },
         {
-          "name": "platformCranker",
-          "docs": [
-            "The cranker account to receive the fee"
-          ],
-          "writable": true,
-          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
-        },
-        {
           "name": "ammConfig",
           "docs": [
             "The factory state to read protocol fees"
           ]
+        },
+        {
+          "name": "platformCranker",
+          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
         },
         {
           "name": "poolState",
@@ -150,30 +146,6 @@ export const MgfMatrix = {
       ]
     },
     {
-      "name": "closeAccount",
-      "discriminator": [
-        125,
-        255,
-        149,
-        14,
-        110,
-        34,
-        72,
-        24
-      ],
-      "accounts": [
-        {
-          "name": "account",
-          "writable": true
-        },
-        {
-          "name": "destination",
-          "writable": true
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "createPool",
       "discriminator": [
         233,
@@ -200,9 +172,6 @@ export const MgfMatrix = {
         {
           "name": "poolState",
           "writable": true
-        },
-        {
-          "name": "tokenMint"
         },
         {
           "name": "tokenMint0",
@@ -524,42 +493,7 @@ export const MgfMatrix = {
       ],
       "accounts": [
         {
-          "name": "authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  103,
-                  114,
-                  97,
-                  109,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121,
-                  95,
-                  115,
-                  101,
-                  101,
-                  100
-                ]
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "lockingProgram"
-            }
-          }
+          "name": "authority"
         },
         {
           "name": "payer",
@@ -598,39 +532,7 @@ export const MgfMatrix = {
         },
         {
           "name": "lockedPosition",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  108,
-                  111,
-                  99,
-                  107,
-                  101,
-                  100,
-                  95,
-                  112,
-                  111,
-                  115,
-                  105,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "feeNftMint"
-              }
-            ],
-            "program": {
-              "kind": "account",
-              "path": "lockingProgram"
-            }
-          }
+          "writable": true
         },
         {
           "name": "feeNftMint",
@@ -963,18 +865,14 @@ export const MgfMatrix = {
           "signer": true
         },
         {
-          "name": "platformCranker",
-          "docs": [
-            "The cranker account to receive the fee"
-          ],
-          "writable": true,
-          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
-        },
-        {
           "name": "ammConfig",
           "docs": [
             "The factory state to read protocol fees"
           ]
+        },
+        {
+          "name": "platformCranker",
+          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
         },
         {
           "name": "poolState",
@@ -1282,19 +1180,6 @@ export const MgfMatrix = {
       ]
     },
     {
-      "name": "poolNftMinted",
-      "discriminator": [
-        70,
-        79,
-        139,
-        114,
-        83,
-        56,
-        101,
-        91
-      ]
-    },
-    {
       "name": "tokenMinted",
       "discriminator": [
         129,
@@ -1324,8 +1209,8 @@ export const MgfMatrix = {
   "errors": [
     {
       "code": 6000,
-      "name": "transferFeeTooHigh",
-      "msg": "TransferFeeTooHigh max 900 bps"
+      "name": "invalidQuoteToken",
+      "msg": "Invalid quote token"
     }
   ],
   "types": [
@@ -1659,18 +1544,6 @@ export const MgfMatrix = {
     },
     {
       "name": "poolLocked",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "nftMint",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "poolNftMinted",
       "type": {
         "kind": "struct",
         "fields": [
@@ -2131,11 +2004,15 @@ export const MgfMatrix = {
         "kind": "struct",
         "fields": [
           {
-            "name": "tokenMint",
+            "name": "wallet",
             "type": "pubkey"
           },
           {
-            "name": "destinationTokenAccount",
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "tokenMint",
             "type": "pubkey"
           }
         ]
@@ -2146,7 +2023,7 @@ export const MgfMatrix = {
     {
       "name": "crankerFee",
       "type": "u64",
-      "value": "350000"
+      "value": "100000"
     },
     {
       "name": "memeDecimals",
@@ -2156,7 +2033,7 @@ export const MgfMatrix = {
     {
       "name": "memeSupply",
       "type": "u64",
-      "value": "1000000000000000000"
+      "value": "1000000000000000"
     },
     {
       "name": "mintAuthoritySeed",
@@ -2166,7 +2043,7 @@ export const MgfMatrix = {
     {
       "name": "poolConfig",
       "type": "pubkey",
-      "value": "CQYbhr6amxUER4p5SC44C63R4qw4NFc9Z4Db9vF4tZwG"
+      "value": "GjLEiquek1Nc2YjcBhufUGFRkaqW1JhaGjsdFd8mys38"
     },
     {
       "name": "raydiumProgram",

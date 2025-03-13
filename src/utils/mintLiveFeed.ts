@@ -1,6 +1,6 @@
 import { Connection, PublicKey, VersionedTransactionResponse } from "@solana/web3.js";
 import { getTokenMetadata } from "@solana/spl-token"
-import { MgfMatrix as IDL } from "./mgf_matrix";
+import { MgfMatrix as IDL } from "./idl";
 
 
 export type MintInfo = {

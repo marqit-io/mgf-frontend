@@ -1,22 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, ArrowUpRight, ArrowLeft, Search, Plus, Flame, Gift, Timer, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { uploadTokenMetadata, TokenMetadata } from '../utils/ipfs';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { buildCreatePoolInstruction, buildDepositPoolInstruction, buildMintTokenInstruction, buildWrapSolInstruction, buildUnwrapSolInstruction, buildBuyInstruction, buildLockPoolInstruction } from '../utils/instruction';
+import { buildMintTokenInstruction, buildCreatePoolInstruction, buildDepositPoolInstruction, buildLockLiquidityInstruction, buildUnwrapSolInstruction, buildWrapSolInstruction } from '../utils/instructionBuilders';
 import {
   Keypair,
   Transaction,
   PublicKey,
-  SystemProgram,
   Connection,
   ComputeBudgetProgram
 } from '@solana/web3.js';
 import bs58 from 'bs58';
 import axios from 'axios';
-import { createSOLConfig } from '../utils/pool_config';
+import { calculateLaunchParameters, SOL_PARAMS } from '../utils/poolConfig';
 import { BN } from '@coral-xyz/anchor';
-import { createAssociatedTokenAccount, createAssociatedTokenAccountInstruction, getAssociatedTokenAddressSync, getOrCreateAssociatedTokenAccount, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 interface TokenDistribution {
   address: string;
   name: string;
@@ -307,127 +306,51 @@ function CreateCoinPage() {
         distributionInterval: formData.glitchInterval
       };
 
-      const jitoEndPoint = import.meta.env.VITE_JITO_ENDPOINT;
-      const jitoReceipt = new PublicKey(import.meta.env.VITE_JITO_TIP_ACCOUNT);
-      const isDevnet = import.meta.env.VITE_ENVIRONMENT === 'devnet';
+      const poolParams = calculateLaunchParameters(SOL_PARAMS, mintKeypair.publicKey, formData.transferTax, new BN(Number(maxSol) * 10 ** 9));
+
+      const isDevnet = import.meta.env.VITE_CLUSTER === 'devnet';
       const solMint = new PublicKey("So11111111111111111111111111111111111111112");
-
-      console.log(buyPercentage);
-      console.log(Number(maxSol));
-
-      const poolParams = createSOLConfig();
 
       const positionNFTMintKeypair = Keypair.generate();
       const feeAccountKeypair = Keypair.generate();
 
-      // Create instructions
-      const mintTokenIx = await buildMintTokenInstruction(
-        connection,
-        minterPublicKey,
-        mintKeypair.publicKey,
-        tokenMetadata,
-        tokenFeeParams,
-        tokenRewardMint,
-        tokenRewardProgram
-      );
-
-      const createPoolIx = await buildCreatePoolInstruction(
-        connection,
-        minterPublicKey,
-        mintKeypair.publicKey,
-        solMint,
-        mintKeypair.publicKey,
-        poolParams
-      );
-
-      const wrapSolIx = await buildWrapSolInstruction(
-        connection,
-        minterPublicKey,
-        poolParams.amount1Max
-      );
-
-      const depositPoolIx = await buildDepositPoolInstruction(
-        connection,
-        minterPublicKey,
-        mintKeypair.publicKey,
-        solMint,
-        poolParams,
-        positionNFTMintKeypair.publicKey
-      );
-
-      const unwrapSolIx = await buildUnwrapSolInstruction(
-        minterPublicKey
-      );
-
-      const lockPoolIx = await buildLockPoolInstruction(
-        connection,
-        minterPublicKey,
-        positionNFTMintKeypair.publicKey,
-        feeAccountKeypair.publicKey
-      );
-
-      const initialBuyIx = await buildBuyInstruction(
-        connection,
-        minterPublicKey,
-        mintKeypair.publicKey,
-        solMint,
-        new BN(buyPercentage.toString().padEnd(16, '0')),
-        new BN((Number(maxSol) * 100).toString().padEnd(7, '0')),
-        new BN(0)
-      );
+      debugger;
+      // const initialBuyIx = await buildBuyInstruction(
+      //   connection,
+      //   minterPublicKey,
+      //   mintKeypair.publicKey,
+      //   solMint,
+      //   new BN(buyPercentage.toString().padEnd(16, '0')),
+      //   new BN((Number(maxSol) * 100).toString().padEnd(7, '0')),
+      //   new BN(0)
+      // );
 
       if (isDevnet) {
-        console.log(connection.rpcEndpoint);
         setDeploymentStatus({ step: 'Preparing transactions for Devnet...', status: 'pending' });
 
-        const computeBudgetIxOne = ComputeBudgetProgram.setComputeUnitLimit({
-          units: 350000,
-        });
-
-        const computeBudgetIxTwo = ComputeBudgetProgram.setComputeUnitLimit({
-          units: 350000,
-        });
-
-        // Split transactions for Devnet
-        const mintTx = new Transaction();
-        mintTx.add(mintTokenIx);
-        mintTx.add(computeBudgetIxOne)
-        mintTx.feePayer = minterPublicKey;
-
-        const createPoolTx = new Transaction();
-        createPoolTx.add(createPoolIx);
-        createPoolTx.feePayer = minterPublicKey;
-
-        const depositPoolTx = new Transaction();
-        depositPoolTx.add(wrapSolIx);
-        depositPoolTx.add(depositPoolIx);
-        depositPoolTx.add(unwrapSolIx);
-        depositPoolTx.feePayer = minterPublicKey;
-
-        const lockPoolTx = new Transaction();
-        lockPoolTx.add(lockPoolIx);
-        lockPoolTx.add(computeBudgetIxTwo);
-        lockPoolTx.feePayer = minterPublicKey;
-
-        const initialBuyTx = new Transaction();
-        const tokenAccount = getAssociatedTokenAddressSync(solMint, minterPublicKey);
-        const info = await connection.getAccountInfo(tokenAccount);
-        if (info == null || info?.data.length == 0) {
-          console.log("Haha!");
-          const createAssociatedTokenAccountIx = createAssociatedTokenAccountInstruction(minterPublicKey, solMint, minterPublicKey, solMint, TOKEN_PROGRAM_ID);
-          initialBuyTx.add(createAssociatedTokenAccountIx);
-        }
-        initialBuyTx.add(initialBuyIx);
-        initialBuyTx.feePayer = minterPublicKey;
-
-        // Send transactions sequentially in Devnet
         try {
-          // 1. Mint Token
+          const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+            units: 350000,
+          });
+
+          const mintTokenIx = await buildMintTokenInstruction(
+            minterPublicKey,
+            mintKeypair.publicKey,
+            tokenMetadata,
+            tokenFeeParams,
+            tokenRewardMint,
+            tokenRewardProgram
+          );
+
+          const mintTx = new Transaction();
+          mintTx.add(mintTokenIx);
+          mintTx.add(computeBudgetIx)
+          mintTx.feePayer = minterPublicKey;
+
           mintTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
           mintTx.partialSign(mintKeypair);
           const signedMintTx = await signTransaction(mintTx);
           setDeploymentStatus({ step: 'Creating token...', status: 'pending' });
-          console.log(signedMintTx.serialize().toString('base64'));
           const mintSignature = await connection.sendRawTransaction(signedMintTx.serialize());
           const mintConfirmation = await connection.confirmTransaction(mintSignature, 'finalized');
 
@@ -438,8 +361,17 @@ function CreateCoinPage() {
           console.log('Mint transaction confirmed:', mintSignature);
           setDeploymentStatus({ step: 'Token created successfully', status: 'completed' });
 
-          // Add delay to ensure token account is fully initialized
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          const createPoolIx = await buildCreatePoolInstruction(
+            minterPublicKey,
+            mintKeypair.publicKey,
+            solMint,
+            poolParams.initialSqrtPriceX64,
+            new BN(0)
+          );
+
+          const createPoolTx = new Transaction();
+          createPoolTx.add(createPoolIx);
+          createPoolTx.feePayer = minterPublicKey;
 
           // 2. Create Pool and Deposit
           setDeploymentStatus({ step: 'Creating liquidity pool...', status: 'pending' });
@@ -455,10 +387,39 @@ function CreateCoinPage() {
           // Add delay to ensure token account is fully initialized
           await new Promise(resolve => setTimeout(resolve, 2000));
 
+          const wrapSolIx = await buildWrapSolInstruction(
+            minterPublicKey,
+            poolParams.quoteMax
+          );
+
+          const depositPoolIx = await buildDepositPoolInstruction(
+            minterPublicKey,
+            mintKeypair.publicKey,
+            solMint,
+            positionNFTMintKeypair.publicKey,
+            {
+              baseMax: poolParams.baseMax,
+              quoteMax: poolParams.quoteMax,
+              maxTick: poolParams.maxTick,
+              minTick: poolParams.minTick
+            }
+          );
+
+          const unwrapSolIx = await buildUnwrapSolInstruction(
+            minterPublicKey
+          );
+
+          const depositPoolTx = new Transaction();
+          depositPoolTx.add(wrapSolIx);
+          depositPoolTx.add(depositPoolIx);
+          depositPoolTx.add(unwrapSolIx);
+          depositPoolTx.feePayer = minterPublicKey;
+
           setDeploymentStatus({ step: 'Depositing liquidity...', status: 'pending' });
           depositPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
           depositPoolTx.partialSign(positionNFTMintKeypair);
           const signedDepositPoolTx = await signTransaction(depositPoolTx);
+          console.log(signedDepositPoolTx.serialize().toString('base64'));
           const depositSignature = await connection.sendRawTransaction(signedDepositPoolTx.serialize());
           const depositConfirmation = await connection.confirmTransaction(depositSignature, 'finalized');
 
@@ -468,6 +429,17 @@ function CreateCoinPage() {
 
           console.log('Pool creation and deposit confirmed:', poolSignature);
           setDeploymentStatus({ step: 'Liquidity pool created successfully', status: 'completed' });
+
+          const lockPoolIx = await buildLockLiquidityInstruction(
+            minterPublicKey,
+            feeAccountKeypair.publicKey,
+            positionNFTMintKeypair.publicKey,
+          );
+
+          const lockPoolTx = new Transaction();
+          lockPoolTx.add(lockPoolIx);
+          lockPoolTx.add(computeBudgetIx);
+          lockPoolTx.feePayer = minterPublicKey;
 
           // Add delay before fee update
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -489,19 +461,6 @@ function CreateCoinPage() {
 
           await new Promise(resolve => setTimeout(resolve, 1000));
 
-          setDeploymentStatus({ step: 'Initial buy...', status: 'pending' });
-          initialBuyTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-          const signedInitialBuyTx = await signTransaction(initialBuyTx);
-          const initialBuySignature = await connection.sendRawTransaction(signedInitialBuyTx.serialize());
-          const initialBuyConfirmation = await connection.confirmTransaction(initialBuySignature, 'finalized');
-
-          if (initialBuyConfirmation.value.err) {
-            throw new Error(`Initial buy transaction failed: ${initialBuyConfirmation.value.err}`);
-          }
-
-          console.log('Initial buy transaction confirmed:', initialBuySignature);
-          setDeploymentStatus({ step: 'Initial buy completed', status: 'completed' });
-
           navigate(`/token/${mintKeypair.publicKey.toBase58()}`);
 
         } catch (error: any) {
@@ -513,79 +472,7 @@ function CreateCoinPage() {
           }
           throw error;
         }
-      } else {
-        // Mainnet: Group transactions and send them together
-        console.log('Sending transactions in Mainnet mode...');
-        setDeploymentStatus({ step: 'Preparing transactions...', status: 'pending' });
-
-        // Group 1: Mint
-        const mintTx = new Transaction();
-        mintTx.add(mintTokenIx);
-        mintTx.feePayer = minterPublicKey;
-        mintTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-        mintTx.partialSign(mintKeypair);
-
-        // Group 2: Pool Creation and Deposit
-        const poolTx = new Transaction();
-        poolTx.add(createPoolIx, depositPoolIx);
-        poolTx.feePayer = minterPublicKey;
-        poolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-        // Group 3: Fee Update
-        const lockPoolTx = new Transaction();
-        lockPoolTx.add(lockPoolIx);
-        lockPoolTx.feePayer = minterPublicKey;
-        lockPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-        // Add Jito tip if needed
-        const jitoTipIx = await SystemProgram.transfer({
-          fromPubkey: minterPublicKey,
-          toPubkey: jitoReceipt,
-          lamports: import.meta.env.VITE_JITO_TIP_AMOUNT
-        });
-        const jitoTipTx = new Transaction();
-        jitoTipTx.add(jitoTipIx);
-        jitoTipTx.feePayer = minterPublicKey;
-        jitoTipTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-        // Sign all transactions
-        const txsToSign = [mintTx, poolTx, lockPoolTx, jitoTipTx];
-        const signedTransactions = await signAllTransactions(txsToSign);
-
-        // Send transactions using RPC batch
-        try {
-          const payload = {
-            "id": 1,
-            "jsonrpc": "2.0",
-            "method": "sendBundles",
-            "params": [
-              signedTransactions.map(tx => tx.serialize()),
-            ]
-          }
-
-          const response = await fetch(`${jitoEndPoint}/sendBundles`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-          });
-
-          console.log(response);
-          setDeploymentStatus({ step: 'Transactions submitted successfully', status: 'completed' });
-          console.log('All transactions confirmed');
-          setDeploymentStatus({ step: 'All transactions confirmed', status: 'completed' });
-        } catch (error: any) {
-          console.error('Transaction error:', error);
-          if (error.name === 'SendTransactionError') {
-            console.error('Send Transaction Error:', error.message);
-            console.error('Logs:', error.logs);
-            throw new Error(`Transaction failed: ${error.message}`);
-          }
-          throw error;
-        }
       }
-
     } catch (error) {
       if (error instanceof Error) {
         console.error('Error creating token:', error.message);

@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect } from 'react';
 import { useTokenData } from '../hooks/useTokenData';
 
 function formatCurrency(value: number): string {
@@ -19,7 +19,7 @@ function formatNumber(value: number): string {
 export function TokenList() {
   const { tokens, isLoading, error, connect, isConnected } = useTokenData();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isConnected) {
       connect();
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageSquare, Send, ThumbsUp, ThumbsDown, Trash2, Clock, ExternalLink } from 'lucide-react';
 
 interface Comment {
@@ -108,7 +108,7 @@ export function CommentSection({ tokenId }: CommentSectionProps) {
 
   const formatTimeAgo = (timestamp: string) => {
     const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
-    
+
     if (seconds < 60) return 'just now';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;

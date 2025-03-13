@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback } from 'react';
 import { TokenSearchResult, SearchState } from '../types/token';
 import axios from 'axios';
 

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
-import { TokenData, TokenState, TokenUpdate } from '../types/token';
+import { createContext, useReducer, useState, useEffect, useCallback } from 'react';
+import { TokenState, TokenUpdate } from '../types/token';
 
 interface TokenContextType {
   state: TokenState;
@@ -60,7 +60,7 @@ const TokenContext = createContext<TokenContextType | null>(null);
 
 export function TokenProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(tokenReducer, initialState);
-  const [socket, setSocket] = React.useState<WebSocket | null>(null);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
 
   const connect = useCallback(async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -68,13 +68,13 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
       // This will be replaced by the actual WebSocket connection
       // provided by the backend developer
       const ws = new WebSocket('wss://api.example.com/tokens');
-      
+
       ws.onmessage = (event) => {
         const update: TokenUpdate = JSON.parse(event.data);
         dispatch({ type: 'UPDATE_TOKEN', payload: update });
       };
 
-      ws.onerror = (error) => {
+      ws.onerror = () => {
         dispatch({ type: 'SET_ERROR', payload: 'WebSocket error occurred' });
       };
 
