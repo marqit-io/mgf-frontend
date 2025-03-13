@@ -8,17 +8,8 @@ import { MgfMatrix as IDL } from "./idl";
 const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
 const mgfProgram = new Program(IDL as Idl, { connection });
 
-// Initialize Raydium in a separate async function
-async function initRaydium() {
-    return await Raydium.load({
-        connection,
-        cluster: import.meta.env.VITE_CLUSTER
-    });
-}
-
+let raydium: Raydium;
 const isDevnet = import.meta.env.VITE_CLUSTER === "devnet";
-
-const raydium = await initRaydium();
 
 const EXECUTOR_PROGRAM_ID = new PublicKey(import.meta.env.VITE_EXECUTOR_PROGRAM_ID);
 const METADATA_PROGRAM_ID = new PublicKey("metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s");
@@ -37,6 +28,17 @@ const mintAuthoritySeed = "mint_authority";
 const tokenAuthoritySeed = "token_authority";
 const clmmLockAuthoritySeed = "program_authority_seed";
 const lockedPositionSeed = "locked_position";
+
+// Initialize Raydium
+export async function initializeRaydium() {
+    if (!raydium) {
+        raydium = await Raydium.load({
+            connection,
+            cluster: import.meta.env.VITE_CLUSTER
+        });
+    }
+    return raydium;
+}
 
 export async function buildMintTokenInstruction(
     minter: PublicKey,
@@ -477,6 +479,7 @@ export async function buildBuyInstruction(
     outputMint: PublicKey,
     amount: BN
 ) {
+    const raydium = await initializeRaydium();
     let poolInfo: ApiV3PoolInfoConcentratedItem;
     let clmmPoolInfo: ComputeClmmPoolInfo;
     let tickCache: ReturnTypeFetchMultiplePoolTickArrays;
@@ -592,6 +595,7 @@ export async function buildSellInstruction(
     outputMint: PublicKey,
     amount: BN
 ) {
+    const raydium = await initializeRaydium();
     let poolInfo: ApiV3PoolInfoConcentratedItem;
     let clmmPoolInfo: ComputeClmmPoolInfo;
     let tickCache: ReturnTypeFetchMultiplePoolTickArrays;
@@ -707,6 +711,7 @@ function i32ToBeBytes(num: number): Buffer {
 }
 
 async function getPoolInfoAndKeysFromId(poolId: string): Promise<{ poolInfo: ApiV3PoolInfoConcentratedItem, poolKeys: ClmmKeys | undefined }> {
+    const raydium = await initializeRaydium();
     if (raydium.cluster === 'mainnet') {
         const data = await raydium.api.fetchPoolById({ ids: poolId });
         return { poolInfo: data[0] as ApiV3PoolInfoConcentratedItem, poolKeys: undefined }
