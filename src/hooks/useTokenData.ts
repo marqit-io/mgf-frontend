@@ -1,6 +1,5 @@
 import { useContext, useMemo } from 'react';
 import { TokenContext } from '../context/TokenContext';
-import { TokenData } from '../types/token';
 
 export function useTokenData() {
   const context = useContext(TokenContext);

@@ -14,7 +14,7 @@ export type MintInfo = {
     timestamp: number
 }
 
-export function subscribeToTokenTrades(
+export function subscribeToTokenMints(
     onMint: (mint: MintInfo) => void
 ) {
     const connection = new Connection(

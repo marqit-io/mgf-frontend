@@ -3,10 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Timer, ArrowUpRight, ArrowDownRight, Copy, Check, Sparkles, Globe, X, MessageCircle, ExternalLink } from 'lucide-react';
 import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
-import { CommentSection } from '../components/CommentSection';
 import { PublicKey } from '@solana/web3.js';
 import { getTokenDataFromMintAddress, getTokenTopHolders } from '../utils/getData';
-import { subscribeToTokenTrades } from '../utils/trades';
+import { subscribeToTokenTrades, fetchRecentTrades } from '../utils/trades';
 
 interface Transaction {
   id: string;
@@ -139,6 +138,10 @@ function TokenProfilePage() {
 
   useEffect(() => {
     if (tokenAddress) {
+      fetchRecentTrades(tokenAddress.toString()).then(trades => {
+        console.log(trades);
+        setTransactions(trades);
+      });
       const unsubscribe = subscribeToTokenTrades(
         tokenAddress.toString(),
         (trade) => {
@@ -418,7 +421,7 @@ function TokenProfilePage() {
               <span className="text-sm opacity-70">GLITCHED</span>
               {tokenData ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-lg text-[#00ff00]">{tokenData.glitched}</span>
+                  <span className="text-lg text-[#00ff00]">{formatCurrency(tokenData.glitched)}</span>
                   <span className={`text-xs ${getDistributionColor(tokenData.glitchType)}`}>
                     {tokenData.glitchType}
                   </span>
@@ -441,7 +444,7 @@ function TokenProfilePage() {
                 <Timer size={16} className="text-[#00ff00]" />
                 <span className="text-sm">Total Tax</span>
               </div>
-              <span className="text-[#00ff00] font-mono">{`${tokenData?.taxInfo?.total / 100}%` || '--'}</span>
+              <span className="text-[#00ff00] font-mono">{`${tokenData?.taxInfo?.total ? tokenData?.taxInfo?.total / 100 + "%" : '--'}`}</span>
             </div>
           </div>
 
@@ -451,7 +454,7 @@ function TokenProfilePage() {
                 <Flame size={16} className="text-red-400" />
                 <span className="text-sm">Burn Rate</span>
               </div>
-              <span className="text-red-400 font-mono">{`${tokenData?.taxInfo?.burn / 100}%` || '--'}</span>
+              <span className="text-red-400 font-mono">{`${tokenData?.taxInfo?.burn ? tokenData?.taxInfo?.burn / 100 + "%" : '--'}`}</span>
             </div>
           </div>
 
@@ -461,7 +464,7 @@ function TokenProfilePage() {
                 <Gift size={16} className="text-green-400" />
                 <span className="text-sm">Reward Rate</span>
               </div>
-              <span className="text-green-400 font-mono">{`${tokenData?.taxInfo?.distribute / 100}%` || '--'}</span>
+              <span className="text-green-400 font-mono">{`${tokenData?.taxInfo?.distribute ? tokenData?.taxInfo?.distribute / 100 + "%" : '--'}`}</span>
             </div>
           </div>
 
@@ -637,10 +640,10 @@ function TokenProfilePage() {
         )}
       </div>
 
-      {/* Comments Section */}
+      {/* Comments Section
       <div className="mt-4">
         <CommentSection tokenId={tokenId || ''} />
-      </div>
+      </div> */}
     </div >
   );
 }

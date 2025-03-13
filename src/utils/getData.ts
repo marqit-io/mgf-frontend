@@ -30,7 +30,6 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
             marketCap: response.market_cap,
             holders: response.holder,
             volume24h: response.volume_24h,
-            glitched: '$989,250',
             priceChange24h: response.price_change_24h,
             contractAddress: response.address,
             contractAddressShort: response.address.slice(0, 4) + '...' + response.address.slice(-4),
@@ -73,6 +72,10 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
                 address: 'So11111111111111111111111111111111111111112'
             }
         };
+
+        // Fourth API call - total glitch
+        const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)).data;
+        tokenData.glitched = glitchInfo.total_value_burned + glitchInfo.total_value_distributed;
     } catch (error) {
         console.error('Error fetching fee info:', error);
         tokenData.taxInfo = null;

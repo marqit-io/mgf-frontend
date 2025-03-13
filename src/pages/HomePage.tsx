@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown, LineChart, Sparkles, Zap, Timer, Flame, Gift, ChevronDown, ChevronUp, ArrowUpRight, Twitter } from 'lucide-react';
 import { getTopGlitchTokens, getTotalStats } from '../utils/getData';
-import { subscribeToTokenTrades, MintInfo } from '../utils/mintLiveFeed';
+import { MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -66,7 +66,7 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
-    const unSubscribe = subscribeToTokenTrades((mint: MintInfo) => {
+    const unSubscribe = subscribeToTokenMints((mint: MintInfo) => {
       setLiveFeed(prev => [...prev, mint].slice(0, 30));
     });
 
@@ -113,12 +113,6 @@ function HomePage() {
     }).format(value);
   };
 
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      maximumFractionDigits: 0
-    }).format(value);
-  };
-
   const formatPercentage = (value: number) => {
     return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
   };
@@ -156,18 +150,6 @@ function HomePage() {
     return date.toLocaleTimeString();
   };
 
-  const getTaxDistributionColor = (burnRatio: number) => {
-    if (burnRatio === 0) return 'text-green-400';
-    if (burnRatio === 100) return 'text-red-400';
-    return 'text-yellow-400';
-  };
-
-  const getTaxDistributionIcon = (burnRatio: number) => {
-    if (burnRatio === 0) return <Gift size={16} className="text-green-400" />;
-    if (burnRatio === 100) return <Flame size={16} className="text-red-400" />;
-    return <Sparkles size={16} className="text-yellow-400" />;
-  };
-
   const getTaxDistributionLabel = (tax: { enabled: boolean, total: number, distribution: { burn: number, reward: number } }) => {
     if (!tax.enabled) return <span className="opacity-70">0%</span>;
 
@@ -182,8 +164,6 @@ function HomePage() {
       </span>
     );
   };
-
-  const sortedAndFilteredTokens = sortAndFilterTokens(tokens);
 
   return (
     <div className="w-full space-y-4 sm:space-y-8 px-2 sm:px-0">

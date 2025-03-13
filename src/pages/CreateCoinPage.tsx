@@ -9,7 +9,8 @@ import {
   Transaction,
   PublicKey,
   Connection,
-  ComputeBudgetProgram
+  ComputeBudgetProgram,
+  SystemProgram
 } from '@solana/web3.js';
 import bs58 from 'bs58';
 import axios from 'axios';
@@ -55,7 +56,6 @@ function CreateCoinPage() {
 
   const [maxSol, setMaxSol] = useState('0');
   const [searchQuery, setSearchQuery] = useState('');
-  const [buyPercentage, setBuyPercentage] = useState(0);
   const [searchResults, setSearchResults] = useState<TokenDistribution[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -313,165 +313,162 @@ function CreateCoinPage() {
 
       const positionNFTMintKeypair = Keypair.generate();
       const feeAccountKeypair = Keypair.generate();
+      const jitoFeeReceipt = new PublicKey(import.meta.env.VITE_JITO_TIP_ACCOUNT);
+      const jitoFeeAmount = Number(import.meta.env.VITE_JITO_TIP_AMOUNT);
 
-      debugger;
-      // const initialBuyIx = await buildBuyInstruction(
-      //   connection,
-      //   minterPublicKey,
-      //   mintKeypair.publicKey,
-      //   solMint,
-      //   new BN(buyPercentage.toString().padEnd(16, '0')),
-      //   new BN((Number(maxSol) * 100).toString().padEnd(7, '0')),
-      //   new BN(0)
-      // );
+      const jitoFeeIx = SystemProgram.transfer({
+        fromPubkey: minterPublicKey,
+        toPubkey: jitoFeeReceipt,
+        lamports: jitoFeeAmount
+      });
 
-      if (isDevnet) {
-        setDeploymentStatus({ step: 'Preparing transactions for Devnet...', status: 'pending' });
+      try {
+        const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
+          units: 350000,
+        });
 
-        try {
-          const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
-            units: 350000,
-          });
+        const mintTokenIx = await buildMintTokenInstruction(
+          minterPublicKey,
+          mintKeypair.publicKey,
+          tokenMetadata,
+          tokenFeeParams,
+          tokenRewardMint,
+          tokenRewardProgram
+        );
 
-          const mintTokenIx = await buildMintTokenInstruction(
-            minterPublicKey,
-            mintKeypair.publicKey,
-            tokenMetadata,
-            tokenFeeParams,
-            tokenRewardMint,
-            tokenRewardProgram
-          );
+        const mintTx = new Transaction();
+        mintTx.add(mintTokenIx);
+        mintTx.add(computeBudgetIx);
+        if (!isDevnet) mintTx.add(jitoFeeIx);
+        mintTx.feePayer = minterPublicKey;
 
-          const mintTx = new Transaction();
-          mintTx.add(mintTokenIx);
-          mintTx.add(computeBudgetIx)
-          mintTx.feePayer = minterPublicKey;
+        mintTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        mintTx.partialSign(mintKeypair);
+        const signedMintTx = await signTransaction(mintTx);
+        setDeploymentStatus({ step: 'Creating token...', status: 'pending' });
+        const mintSignature = await connection.sendRawTransaction(signedMintTx.serialize());
+        const mintConfirmation = await connection.confirmTransaction(mintSignature, 'finalized');
 
-          mintTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-          mintTx.partialSign(mintKeypair);
-          const signedMintTx = await signTransaction(mintTx);
-          setDeploymentStatus({ step: 'Creating token...', status: 'pending' });
-          const mintSignature = await connection.sendRawTransaction(signedMintTx.serialize());
-          const mintConfirmation = await connection.confirmTransaction(mintSignature, 'finalized');
-
-          if (mintConfirmation.value.err) {
-            throw new Error(`Mint transaction failed: ${mintConfirmation.value.err}`);
-          }
-
-          console.log('Mint transaction confirmed:', mintSignature);
-          setDeploymentStatus({ step: 'Token created successfully', status: 'completed' });
-
-          const createPoolIx = await buildCreatePoolInstruction(
-            minterPublicKey,
-            mintKeypair.publicKey,
-            solMint,
-            poolParams.initialSqrtPriceX64,
-            new BN(0)
-          );
-
-          const createPoolTx = new Transaction();
-          createPoolTx.add(createPoolIx);
-          createPoolTx.feePayer = minterPublicKey;
-
-          // 2. Create Pool and Deposit
-          setDeploymentStatus({ step: 'Creating liquidity pool...', status: 'pending' });
-          createPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-          const signedCreatePoolTx = await signTransaction(createPoolTx);
-          const poolSignature = await connection.sendRawTransaction(signedCreatePoolTx.serialize());
-          const poolConfirmation = await connection.confirmTransaction(poolSignature, 'finalized');
-
-          if (poolConfirmation.value.err) {
-            throw new Error(`Pool creation failed: ${poolConfirmation.value.err}`);
-          }
-
-          // Add delay to ensure token account is fully initialized
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          const wrapSolIx = await buildWrapSolInstruction(
-            minterPublicKey,
-            poolParams.quoteMax
-          );
-
-          const depositPoolIx = await buildDepositPoolInstruction(
-            minterPublicKey,
-            mintKeypair.publicKey,
-            solMint,
-            positionNFTMintKeypair.publicKey,
-            {
-              baseMax: poolParams.baseMax,
-              quoteMax: poolParams.quoteMax,
-              maxTick: poolParams.maxTick,
-              minTick: poolParams.minTick
-            }
-          );
-
-          const unwrapSolIx = await buildUnwrapSolInstruction(
-            minterPublicKey
-          );
-
-          const depositPoolTx = new Transaction();
-          depositPoolTx.add(wrapSolIx);
-          depositPoolTx.add(depositPoolIx);
-          depositPoolTx.add(unwrapSolIx);
-          depositPoolTx.feePayer = minterPublicKey;
-
-          setDeploymentStatus({ step: 'Depositing liquidity...', status: 'pending' });
-          depositPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-          depositPoolTx.partialSign(positionNFTMintKeypair);
-          const signedDepositPoolTx = await signTransaction(depositPoolTx);
-          console.log(signedDepositPoolTx.serialize().toString('base64'));
-          const depositSignature = await connection.sendRawTransaction(signedDepositPoolTx.serialize());
-          const depositConfirmation = await connection.confirmTransaction(depositSignature, 'finalized');
-
-          if (depositConfirmation.value.err) {
-            throw new Error(`Deposit transaction failed: ${depositConfirmation.value.err}`);
-          }
-
-          console.log('Pool creation and deposit confirmed:', poolSignature);
-          setDeploymentStatus({ step: 'Liquidity pool created successfully', status: 'completed' });
-
-          const lockPoolIx = await buildLockLiquidityInstruction(
-            minterPublicKey,
-            feeAccountKeypair.publicKey,
-            positionNFTMintKeypair.publicKey,
-          );
-
-          const lockPoolTx = new Transaction();
-          lockPoolTx.add(lockPoolIx);
-          lockPoolTx.add(computeBudgetIx);
-          lockPoolTx.feePayer = minterPublicKey;
-
-          // Add delay before fee update
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          // 3. Lock Pool
-          setDeploymentStatus({ step: 'Locking pool...', status: 'pending' });
-          lockPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-          lockPoolTx.partialSign(feeAccountKeypair);
-          const signedLockPoolTx = await signTransaction(lockPoolTx);
-          const lockPoolSignature = await connection.sendRawTransaction(signedLockPoolTx.serialize());
-          const lockPoolConfirmation = await connection.confirmTransaction(lockPoolSignature, 'finalized');
-
-          if (lockPoolConfirmation.value.err) {
-            throw new Error(`Locking pool has failed: ${lockPoolConfirmation.value.err}`);
-          }
-
-          console.log('Lock pool confirmed:', lockPoolSignature);
-          setDeploymentStatus({ step: 'Lock pool completed', status: 'completed' });
-
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          navigate(`/token/${mintKeypair.publicKey.toBase58()}`);
-
-        } catch (error: any) {
-          console.error('Transaction error:', error);
-          if (error.name === 'SendTransactionError') {
-            console.error('Send Transaction Error:', error.message);
-            console.error('Logs:', error.logs);
-            throw new Error(`Transaction failed: ${error.message}`);
-          }
-          throw error;
+        if (mintConfirmation.value.err) {
+          throw new Error(`Mint transaction failed: ${mintConfirmation.value.err}`);
         }
+
+        console.log('Mint transaction confirmed:', mintSignature);
+        setDeploymentStatus({ step: 'Token created successfully', status: 'completed' });
+
+        const createPoolIx = await buildCreatePoolInstruction(
+          minterPublicKey,
+          mintKeypair.publicKey,
+          solMint,
+          poolParams.initialSqrtPriceX64,
+          new BN(0)
+        );
+
+        const createPoolTx = new Transaction();
+        createPoolTx.add(createPoolIx);
+        if (!isDevnet) createPoolTx.add(jitoFeeIx);
+        createPoolTx.feePayer = minterPublicKey;
+
+        // 2. Create Pool and Deposit
+        setDeploymentStatus({ step: 'Creating liquidity pool...', status: 'pending' });
+        createPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        const signedCreatePoolTx = await signTransaction(createPoolTx);
+        const poolSignature = await connection.sendRawTransaction(signedCreatePoolTx.serialize());
+        const poolConfirmation = await connection.confirmTransaction(poolSignature, 'finalized');
+
+        if (poolConfirmation.value.err) {
+          throw new Error(`Pool creation failed: ${poolConfirmation.value.err}`);
+        }
+
+        // Add delay to ensure token account is fully initialized
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const wrapSolIx = await buildWrapSolInstruction(
+          minterPublicKey,
+          poolParams.quoteMax
+        );
+
+        const depositPoolIx = await buildDepositPoolInstruction(
+          minterPublicKey,
+          mintKeypair.publicKey,
+          solMint,
+          positionNFTMintKeypair.publicKey,
+          {
+            baseMax: poolParams.baseMax,
+            quoteMax: poolParams.quoteMax,
+            maxTick: poolParams.maxTick,
+            minTick: poolParams.minTick
+          }
+        );
+
+        const unwrapSolIx = await buildUnwrapSolInstruction(
+          minterPublicKey
+        );
+
+        const depositPoolTx = new Transaction();
+        depositPoolTx.add(wrapSolIx);
+        depositPoolTx.add(depositPoolIx);
+        depositPoolTx.add(unwrapSolIx);
+        if (!isDevnet) depositPoolTx.add(jitoFeeIx);
+        depositPoolTx.feePayer = minterPublicKey;
+
+        setDeploymentStatus({ step: 'Depositing liquidity...', status: 'pending' });
+        depositPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        depositPoolTx.partialSign(positionNFTMintKeypair);
+        const signedDepositPoolTx = await signTransaction(depositPoolTx);
+        console.log(signedDepositPoolTx.serialize().toString('base64'));
+        const depositSignature = await connection.sendRawTransaction(signedDepositPoolTx.serialize());
+        const depositConfirmation = await connection.confirmTransaction(depositSignature, 'finalized');
+
+        if (depositConfirmation.value.err) {
+          throw new Error(`Deposit transaction failed: ${depositConfirmation.value.err}`);
+        }
+
+        console.log('Pool creation and deposit confirmed:', poolSignature);
+        setDeploymentStatus({ step: 'Liquidity pool created successfully', status: 'completed' });
+
+        const lockPoolIx = await buildLockLiquidityInstruction(
+          minterPublicKey,
+          feeAccountKeypair.publicKey,
+          positionNFTMintKeypair.publicKey,
+        );
+
+        const lockPoolTx = new Transaction();
+        lockPoolTx.add(lockPoolIx);
+        lockPoolTx.add(computeBudgetIx);
+        if (!isDevnet) lockPoolTx.add(jitoFeeIx);
+        lockPoolTx.feePayer = minterPublicKey;
+
+        // Add delay before fee update
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 3. Lock Pool
+        setDeploymentStatus({ step: 'Locking pool...', status: 'pending' });
+        lockPoolTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        lockPoolTx.partialSign(feeAccountKeypair);
+        const signedLockPoolTx = await signTransaction(lockPoolTx);
+        const lockPoolSignature = await connection.sendRawTransaction(signedLockPoolTx.serialize());
+        const lockPoolConfirmation = await connection.confirmTransaction(lockPoolSignature, 'finalized');
+
+        if (lockPoolConfirmation.value.err) {
+          throw new Error(`Locking pool has failed: ${lockPoolConfirmation.value.err}`);
+        }
+
+        console.log('Lock pool confirmed:', lockPoolSignature);
+        setDeploymentStatus({ step: 'Lock pool completed', status: 'completed' });
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        navigate(`/token/${mintKeypair.publicKey.toBase58()}`);
+
+      } catch (error: any) {
+        console.error('Transaction error:', error);
+        if (error.name === 'SendTransactionError') {
+          console.error('Send Transaction Error:', error.message);
+          console.error('Logs:', error.logs);
+          throw new Error(`Transaction failed: ${error.message}`);
+        }
+        throw error;
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -514,39 +511,16 @@ function CreateCoinPage() {
   if (step === 'initial-buy') {
     return (
       <div className="max-w-2xl mx-auto terminal-card p-6">
-        <h1 className="terminal-header text-2xl mb-8">&gt; INITIAL_BUY_CONFIGURATION</h1>
-
+        <h1 className="terminal-header text-2xl mb-8">&gt; DEPOSIT_POOL_CONFIGURATION</h1>
         <form onSubmit={handleInitialBuySubmit} className="space-y-6">
           <div className="space-y-4">
-            <div>
-              <label htmlFor="buyPercentage" className="block text-sm mb-2">
-                &gt; INITIAL_BUY_PERCENTAGE: {buyPercentage}%
-              </label>
-              <input
-                type="range"
-                id="buyPercentage"
-                value={buyPercentage}
-                onChange={(e) => {
-                  const percentage = parseInt(e.target.value);
-                  setBuyPercentage(percentage);
-                }}
-                min="1"
-                max="100"
-                className="w-full accent-[#00ff00]"
-              />
-              <div className="flex justify-between text-xs opacity-70 mt-1">
-                <span>1%</span>
-                <span>100%</span>
-              </div>
-            </div>
-
             <div>
               <label htmlFor="initialBuyAmount" className="block text-sm mb-2">
                 &gt; MAX_SOL_DEPOSIT
               </label>
               <input
                 type="number"
-                id="initialBuyAmount"
+                id="depositSOLAmount"
                 value={maxSol}
                 onChange={(e) => {
                   setMaxSol(e.target.value);
@@ -855,12 +829,12 @@ function CreateCoinPage() {
                     value={formData.transferTax}
                     onChange={handleInputChange}
                     min="1"
-                    max="100"
+                    max="9"
                     className="w-full accent-[#00ff00]"
                   />
                   <div className="flex justify-between text-xs opacity-70 mt-1">
                     <span>1%</span>
-                    <span>100%</span>
+                    <span>9%</span>
                   </div>
                 </div>
 

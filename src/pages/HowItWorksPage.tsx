@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Terminal, Zap, Timer, Gift, Flame, Sparkles, ArrowRight, ArrowUpDown, Waves, Wallet, ArrowUpRight } from 'lucide-react';
 
@@ -6,8 +5,8 @@ function HowItWorksPage() {
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="mb-6 flex items-center justify-between">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="terminal-button px-4 py-2 text-sm flex items-center gap-2"
         >
           <ArrowLeft size={16} />
@@ -43,7 +42,7 @@ function HowItWorksPage() {
                   Forget the limitations, let your mind run wild, <span className="font-bold text-[#00ff00]">create your token today for free</span>!
                 </p>
                 <div className="pt-2">
-                  <Link 
+                  <Link
                     to="/create"
                     className="terminal-button px-4 py-2 text-sm inline-flex items-center gap-2 group"
                   >
@@ -171,7 +170,7 @@ function HowItWorksPage() {
                 The accumulated tax pool is distributed at predetermined intervals:
               </p>
               <pre className="bg-black/30 p-4 rounded border border-[#00ff00]/20 mt-2">
-{`DISTRIBUTION_INTERVALS = [
+                {`DISTRIBUTION_INTERVALS = [
   "5_MINUTES",
   "15_MINUTES",
   "30_MINUTES",
@@ -216,14 +215,14 @@ function HowItWorksPage() {
               Launch your token now and explore endless possibilities
             </p>
             <div className="flex justify-center">
-              <Link 
-                to="/create" 
+              <Link
+                to="/create"
                 className="terminal-button px-8 py-4 text-lg inline-flex items-center gap-3 group hover:scale-105 transition-all duration-300 relative overflow-hidden"
               >
                 <span className="relative z-10">&gt; CREATE_TOKEN</span>
-                <ArrowUpRight 
-                  size={20} 
-                  className="text-[#00ff00] transition-transform group-hover:translate-x-1 group-hover:-translate-y-1 relative z-10" 
+                <ArrowUpRight
+                  size={20}
+                  className="text-[#00ff00] transition-transform group-hover:translate-x-1 group-hover:-translate-y-1 relative z-10"
                 />
                 <div className="absolute inset-0 bg-[#00ff00]/10 transform -skew-x-12 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
               </Link>

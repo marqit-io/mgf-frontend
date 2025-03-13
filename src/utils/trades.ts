@@ -44,6 +44,7 @@ function parseTokenTransaction(
     tx: VersionedTransactionResponse,
     tokenMintAddress: string
 ): TradeInfo | null {
+    debugger;
     try {
         const preTokenBalances = tx.meta?.preTokenBalances || [];
         const postTokenBalances = tx.meta?.postTokenBalances || [];
@@ -98,6 +99,18 @@ function parseTokenTransaction(
         console.error('Error parsing transaction:', error);
         return null;
     }
+}
+
+export async function fetchRecentTrades(tokenMintAddress: string): Promise<TradeInfo[]> {
+    const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
+    const signatures = await connection.getSignaturesForAddress(new PublicKey(tokenMintAddress), { limit: 30 }, "confirmed");
+    const recentTrades = await Promise.all(signatures.map(async (signature) => {
+        const tx = await connection.getTransaction(signature.signature, { maxSupportedTransactionVersion: 0 });
+        if (!tx) return null;
+        return parseTokenTransaction(tx, tokenMintAddress);
+    }));
+    console.log(recentTrades);
+    return recentTrades.filter(trade => trade !== null);
 }
 
 export function subscribeToTokenTrades(
