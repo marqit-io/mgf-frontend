@@ -12,11 +12,13 @@ import {
   ComputeBudgetProgram,
   SystemProgram
 } from '@solana/web3.js';
+import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2"
 import bs58 from 'bs58';
 import axios from 'axios';
 import { calculateLaunchParameters, SOL_PARAMS } from '../utils/poolConfig';
 import { BN } from '@coral-xyz/anchor';
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { getSolPrice } from "../utils/getData";
 interface TokenDistribution {
   address: string;
   name: string;
@@ -459,7 +461,45 @@ function CreateCoinPage() {
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        navigate(`/token/${mintKeypair.publicKey.toBase58()}`);
+        const priceInSOL = SqrtPriceMath.sqrtPriceX64ToPrice(poolParams.initialSqrtPriceX64, 6, 9);
+        const solPrice = await getSolPrice();
+        const priceInUSD = Number(priceInSOL) * solPrice;
+
+        navigate(`/token/${mintKeypair.publicKey.toBase58()}`, {
+          state: {
+            initialTokenData: {
+              name: formData.name,
+              ticker: formData.ticker,
+              description: formData.description,
+              profileImage: URL.createObjectURL(selectedFile),
+              contractAddress: mintKeypair.publicKey.toString(),
+              contractAddressShort: `${mintKeypair.publicKey.toString().slice(0, 4)}...${mintKeypair.publicKey.toString().slice(-4)}`,
+              price: priceInUSD,
+              priceChange24h: undefined,
+              marketCap: priceInUSD * 100000000,
+              volume24h: undefined,
+              holders: 1,
+              glitched: undefined,
+              glitchType: formData.taxOption.toUpperCase(),
+              socialLinks: {
+                website: formData.websiteLink || undefined,
+                twitter: formData.twitterLink || undefined,
+                telegram: formData.telegramLink || undefined,
+              },
+              taxInfo: {
+                total: formData.transferTax * 100,
+                burn: formData.taxDistribution.burn * formData.transferTax,
+                distribute: formData.taxDistribution.distribute * formData.transferTax,
+                interval: formData.glitchInterval,
+                distributionToken: formData.tokenDistribution.token ? {
+                  address: formData.tokenDistribution.token.address,
+                  symbol: formData.tokenDistribution.token.symbol,
+                  name: formData.tokenDistribution.token.name
+                } : undefined
+              }
+            }
+          }
+        });
 
       } catch (error: any) {
         console.error('Transaction error:', error);
@@ -829,12 +869,12 @@ function CreateCoinPage() {
                     value={formData.transferTax}
                     onChange={handleInputChange}
                     min="1"
-                    max="9"
+                    max="100"
                     className="w-full accent-[#00ff00]"
                   />
                   <div className="flex justify-between text-xs opacity-70 mt-1">
                     <span>1%</span>
-                    <span>9%</span>
+                    <span>100%</span>
                   </div>
                 </div>
 

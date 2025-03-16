@@ -17,7 +17,7 @@ const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfc
 const PLATFORM_FEE_ACCOUNT = isDevnet ? new PublicKey("mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ") : new PublicKey("7j5bdSE2k4xcqvCEjK223CFTeDvLMPskXYJKj3ZgtPaL");
 const POOL_CONFIG = isDevnet ? new PublicKey("GjLEiquek1Nc2YjcBhufUGFRkaqW1JhaGjsdFd8mys38") : new PublicKey("Gex2NJRS3jVLPfbzSFM5d5DRsNoL5ynnwT1TXoDEhanz");
 const LOCKING_PROGRAM_ID = isDevnet ? new PublicKey("DLockwT7X7sxtLmGH9g5kmfcjaBtncdbUmi738m5bvQC") : new PublicKey("LockrWmn6K5twhz3y9w1dQERbmgSaRkfnTeTKbpofwE");
-const CRANKER_PROGRAM_ID = isDevnet ? new PublicKey("mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ") : new PublicKey("FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W");
+const CRANKER_PROGRAM_ID = isDevnet ? new PublicKey("crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1") : new PublicKey("FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W");
 const CLMM_PROGRAM_ID = isDevnet ? DEVNET_PROGRAM_ID.CLMM : MAINNET_CLMM_PROGRAM_ID;
 const VALID_PROGRAM_ID = new Set([CLMM_PROGRAM_ID.toBase58(), DEVNET_PROGRAM_ID.CLMM.toBase58()])
 
@@ -505,7 +505,7 @@ export async function buildBuyInstruction(
         tickCache = data.tickData;
     }
 
-    if (outputMint.toBase58() !== poolInfo.mintA.address)
+    if (inputMint.toBase58() !== poolInfo.mintB.address)
         throw new Error('input mint does not match pool')
 
     const baseIn = inputMint.toBase58() === poolInfo.mintA.address;
@@ -520,7 +520,6 @@ export async function buildBuyInstruction(
         catchLiquidityInsufficient: true
     });
 
-    console.log(`Min Amount Out: ${minAmountOut.amount.raw.abs().toString()}`);
     const inputTokenAccount = await getAssociatedTokenAddress(
         inputMint,
         payer,

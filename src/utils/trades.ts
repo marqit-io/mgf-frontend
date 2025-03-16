@@ -44,7 +44,6 @@ function parseTokenTransaction(
     tx: VersionedTransactionResponse,
     tokenMintAddress: string
 ): TradeInfo | null {
-    debugger;
     try {
         const preTokenBalances = tx.meta?.preTokenBalances || [];
         const postTokenBalances = tx.meta?.postTokenBalances || [];

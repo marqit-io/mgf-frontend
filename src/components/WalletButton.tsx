@@ -4,27 +4,32 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useEffect } from 'react';
 
 export function WalletButton() {
-  const { connected, connecting, publicKey, wallet } = useWallet();
+  const { connected, connecting, disconnecting, publicKey, wallet, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
 
   useEffect(() => {
     if (wallet?.adapter.name !== 'Phantom' && connected) {
-      wallet?.adapter.disconnect();
+      disconnect();
     }
-  }, [wallet, connected]);
+  }, [wallet, connected, disconnect]);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (!connected) {
       setVisible(true);
     } else {
-      wallet?.adapter.disconnect();
+      // Ensure full wallet disconnection
+      try {
+        await disconnect();
+      } catch (error) {
+        console.error('Error disconnecting wallet:', error);
+      }
     }
   };
 
   return (
     <button
       onClick={handleClick}
-      disabled={connecting}
+      disabled={connecting || disconnecting}
       className={`terminal-button px-4 py-2 flex items-center gap-2 ${connecting ? 'opacity-50 cursor-not-allowed' : ''
         }`}
     >

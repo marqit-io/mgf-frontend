@@ -1,17 +1,24 @@
-import { PublicKey, Connection, VersionedTransaction } from '@solana/web3.js';
+import { PublicKey, Connection } from '@solana/web3.js';
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownRight, Loader2, CheckCircle2 } from 'lucide-react';
-import { getSolBalance, getTokenBalance } from '../utils/getData';
+import { getSolBalance, getSolPrice, getTokenBalance } from '../utils/getData';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { getMint } from '@solana/spl-token';
+import { buildBuyInstruction, buildSellInstruction, buildWrapSolInstruction, buildUnwrapSolInstruction } from '../utils/instructionBuilders';
+import { Transaction } from '@solana/web3.js';
+import { WSOLMint } from "@raydium-io/raydium-sdk-v2";
+import { BN } from '@coral-xyz/anchor';
+import { initializeRaydium } from '../utils/instructionBuilders';
+import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2";
+import { getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { createAssociatedTokenAccountInstruction } from '@solana/spl-token';
 
 interface TradePanelProps {
   tokenSymbol: string;
-  tokenPrice: number;
+  poolId: PublicKey;
   tokenMintAddress: PublicKey;
 }
 
-export function TradePanel({ tokenSymbol, tokenPrice, tokenMintAddress }: TradePanelProps) {
+export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanelProps) {
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('1');
@@ -22,8 +29,8 @@ export function TradePanel({ tokenSymbol, tokenPrice, tokenMintAddress }: TradeP
   const [error, setError] = useState<string | null>(null);
   const [estimatedOutput, setEstimatedOutput] = useState<number | null>(null);
   const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
-  const [quoteResponse, setQuoteResponse] = useState<any>(null);
   const [success, setSuccess] = useState<{ message: string; signature: string } | null>(null);
+  const [tokenPrice, setTokenPrice] = useState(0);
 
   useEffect(() => {
     if (publicKey) {
@@ -62,42 +69,183 @@ export function TradePanel({ tokenSymbol, tokenPrice, tokenMintAddress }: TradeP
     }
   };
 
-  // Fetch quote when amount or trade type changes
+  // Add useEffect to fetch pool price when component mounts
+  useEffect(() => {
+    const fetchPoolPrice = async () => {
+      if (!poolId) return;
+
+      try {
+        const raydium = await initializeRaydium();
+
+        // Get pool info from RPC
+        const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolId.toString());
+        // Calculate price from sqrt price
+        const currentPrice = SqrtPriceMath.sqrtPriceX64ToPrice(
+          computePoolInfo.sqrtPriceX64,
+          6, // Token decimals (usually 6 for custom tokens)
+          9  // WSOL decimals
+        );
+
+        // Get SOL price to convert to USD
+        const solPrice = await getSolPrice();
+        const priceInUsd = Number(currentPrice) * solPrice;
+        setTokenPrice(priceInUsd);
+      } catch (error) {
+        console.error('Error fetching pool price:', error);
+        setError('Failed to fetch current price');
+      }
+    };
+
+    // Fetch initial price
+    fetchPoolPrice();
+
+    // Set up interval to update price periodically
+    const interval = setInterval(fetchPoolPrice, 10000); // Update every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Replace handleTrade with this implementation
+  const handleTrade = async () => {
+    if (!connected || !signTransaction || !publicKey || !poolId) {
+      setError('Please connect your wallet to trade');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSuccess(null);
+      validateTrade();
+
+      const inputAmount = new BN(Math.floor(parseFloat(amount) * 1e9)); // Convert to lamports
+
+      // Create transaction
+      const tx = new Transaction();
+
+      // Get the associated token account address
+      const tokenAccount = getAssociatedTokenAddressSync(
+        tokenMintAddress,
+        publicKey
+      );
+      const wsolAccount = getAssociatedTokenAddressSync(
+        WSOLMint,
+        publicKey
+      );
+
+      if (tradeType === 'buy') {
+        // Check if token account exists and create if needed
+        try {
+          await connection.getAccountInfo(tokenAccount);
+        } catch (e) {
+          const createTokenAccountIx = createAssociatedTokenAccountInstruction(
+            publicKey, // payer
+            tokenAccount, // ata
+            publicKey, // owner
+            tokenMintAddress // mint
+          );
+          tx.add(createTokenAccountIx);
+        }
+
+        // Add wrap SOL instruction if buying
+        const wrapSolIx = await buildWrapSolInstruction(publicKey, inputAmount);
+        tx.add(wrapSolIx);
+
+        // Add buy instruction
+        const buyIx = await buildBuyInstruction(
+          publicKey,
+          poolId,
+          WSOLMint, // Input mint (SOL)
+          tokenMintAddress, // Output mint (Token)
+          inputAmount
+        );
+        tx.add(buyIx);
+
+        // Add unwrap SOL instruction for any remaining WSOL
+        const unwrapSolIx = await buildUnwrapSolInstruction(publicKey);
+        tx.add(unwrapSolIx);
+      } else {
+        // For selling, we need to ensure WSOL account exists
+        try {
+          await connection.getAccountInfo(wsolAccount);
+        } catch (e) {
+          const createWsolAccountIx = createAssociatedTokenAccountInstruction(
+            publicKey, // payer
+            wsolAccount, // ata
+            publicKey, // owner
+            WSOLMint // mint
+          );
+          tx.add(createWsolAccountIx);
+        }
+
+        // Add sell instruction
+        const sellIx = await buildSellInstruction(
+          publicKey,
+          poolId,
+          tokenMintAddress, // Input mint (Token)
+          WSOLMint, // Output mint (SOL)
+          inputAmount
+        );
+        tx.add(sellIx);
+
+        // Add unwrap SOL instruction to get native SOL
+        const unwrapSolIx = await buildUnwrapSolInstruction(publicKey);
+        tx.add(unwrapSolIx);
+      }
+
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+      const signedTx = await signTransaction(tx);
+      console.log(signedTx.serialize().toString('base64'));
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+
+      const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+
+      // Clear form and update balances
+      setAmount('');
+      setEstimatedOutput(null);
+      await updateBalances();
+
+      // Set success message
+      setSuccess({
+        message: `Successfully ${tradeType === 'buy' ? 'bought' : 'sold'} ${inputAmount.toNumber() / 1e9} ${tradeType === 'buy' ? 'SOL' : tokenSymbol}`,
+        signature
+      });
+
+    } catch (error) {
+      console.error('Trade failed:', error);
+      setError(error instanceof Error ? error.message : 'Trade failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Modify the quote fetching logic
   useEffect(() => {
     const fetchQuote = async () => {
-      if (!inputAmount || inputAmount <= 0) {
+      if (!inputAmount || inputAmount <= 0 || !poolId) {
         setEstimatedOutput(null);
         return;
       }
 
       try {
-        const inputMint = tradeType === 'buy'
-          ? 'So11111111111111111111111111111111111111112'
-          : tokenMintAddress.toString();
+        const inputMint = tradeType === 'buy' ? WSOLMint : tokenMintAddress;
+        const outputMint = tradeType === 'buy' ? tokenMintAddress : WSOLMint;
 
-        const outputMint = tradeType === 'buy'
-          ? tokenMintAddress.toString()
-          : 'So11111111111111111111111111111111111111112';
+        // Convert to smallest unit
+        const rawAmount = new BN(Math.floor(inputAmount * 1e9));
 
-        // Get input token decimals
-        const inDecimals = inputMint === 'So11111111111111111111111111111111111111112'
-          ? 9  // SOL has 9 decimals
-          : (await getMint(connection, new PublicKey(inputMint))).decimals;
+        // Here you would calculate the expected output based on Raydium pool state
+        // This is a simplified example - you'll need to implement proper price impact calculation
+        const outAmount = tradeType === 'buy'
+          ? inputAmount / tokenPrice
+          : inputAmount * tokenPrice;
 
-        // Convert to smallest unit based on input token decimals
-        const rawAmount = Math.floor(inputAmount * (10 ** inDecimals));
-
-        const quoteResponse = await fetch(
-          `https://api.jup.ag/swap/v1/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${rawAmount}&slippageBps=${parseFloat(slippage) * 100}&onlyDirectRoutes=false`
-        ).then(res => res.json());
-
-        const outDecimals = (await getMint(connection, new PublicKey(outputMint))).decimals;
-
-        if (quoteResponse && !quoteResponse.error) {
-          const outAmount = parseInt(quoteResponse.outAmount) / 10 ** outDecimals;
-          setEstimatedOutput(outAmount);
-          setQuoteResponse(quoteResponse);
-        }
+        setEstimatedOutput(outAmount);
       } catch (error) {
         console.error('Error fetching quote:', error);
         setEstimatedOutput(null);
@@ -105,7 +253,7 @@ export function TradePanel({ tokenSymbol, tokenPrice, tokenMintAddress }: TradeP
     };
 
     fetchQuote();
-  }, [amount, tradeType, tokenMintAddress, slippage]);
+  }, [amount, tradeType, tokenMintAddress, poolId, tokenPrice]);
 
   // Add function to update balances
   const updateBalances = async () => {
@@ -124,81 +272,6 @@ export function TradePanel({ tokenSymbol, tokenPrice, tokenMintAddress }: TradeP
     const interval = setInterval(updateBalances, 5000);
     return () => clearInterval(interval);
   }, []);
-
-  const handleTrade = async () => {
-    if (!connected || !signTransaction || !publicKey) {
-      setError('Please connect your wallet to trade');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      setSuccess(null);
-      validateTrade();
-
-      if (!quoteResponse) {
-        throw new Error('No quote response');
-      }
-
-      // Execute swap with Jupiter
-      const swapResponse = await (
-        await fetch('https://api.jup.ag/swap/v1/swap', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            quoteResponse,
-            userPublicKey: publicKey,
-            dynamicComputeUnitLimit: true,
-            dynamicSlippage: true,
-            prioritizationFeeLamports: {
-              priorityLevelWithMaxLamports: {
-                maxLamports: 1000000,
-                priorityLevel: "veryHigh"
-              }
-            }
-          })
-        })
-      ).json();
-
-      if (!swapResponse || !swapResponse.swapTransaction) {
-        throw new Error(swapResponse.error || 'Failed to create swap transaction');
-      }
-
-      const transaction = VersionedTransaction.deserialize(Buffer.from(swapResponse.swapTransaction, 'base64'));
-      const signedTransaction = await signTransaction(transaction);
-
-      const signature = await connection.sendRawTransaction(signedTransaction.serialize());
-      const confirmation = await connection.confirmTransaction(
-        { signature, lastValidBlockHeight: swapResponse.lastValidBlockHeight, blockhash: swapResponse.blockhash },
-        'confirmed'
-      );
-
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
-      }
-
-      // Clear form and update balances
-      setAmount('');
-      setEstimatedOutput(null);
-      await updateBalances();
-
-      // Set success message
-      setSuccess({
-        message: `Successfully ${tradeType === 'buy' ? 'bought' : 'sold'} ${inputAmount.toFixed(4)} ${tradeType === 'buy' ? 'SOL' : tokenSymbol
-          }`,
-        signature
-      });
-
-    } catch (error) {
-      console.error('Trade failed:', error);
-      setError(error instanceof Error ? error.message : 'Trade failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="trade-panel p-6">

@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/mgf_matrix.json`.
  */
 export const MgfMatrix = {
-  "address": "mgfRigZ8hm5HaybTjTQVo6touScR42siLMV891w85PK",
+  "address": "mgfwzGZkHjdjDGzz8hGDbMFd8tyd9UDFDeHr1Gvwbwb",
   "metadata": {
     "name": "mgfMatrix",
     "version": "0.1.0",
@@ -45,7 +45,8 @@ export const MgfMatrix = {
         },
         {
           "name": "platformCranker",
-          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
+          "address": "crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1",
+          "writable": true
         },
         {
           "name": "poolState",
@@ -767,7 +768,44 @@ export const MgfMatrix = {
                   121
                 ]
               }
-            ]
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                11,
+                114,
+                102,
+                203,
+                210,
+                242,
+                69,
+                57,
+                30,
+                185,
+                218,
+                82,
+                187,
+                86,
+                57,
+                223,
+                161,
+                228,
+                90,
+                23,
+                234,
+                220,
+                246,
+                71,
+                97,
+                87,
+                120,
+                168,
+                212,
+                121,
+                59,
+                37
+              ]
+            }
           }
         },
         {
@@ -814,7 +852,7 @@ export const MgfMatrix = {
         },
         {
           "name": "executorProgram",
-          "address": "mgf7APo6tTMvLA6xTwzBZUthP3B1Ait5v3xiVqDDipN"
+          "address": "mgfPv2Yeb7UWfaH2JCwPHcHVWJPwgCsXp6yWoSzjhbJ"
         },
         {
           "name": "rent",
@@ -872,7 +910,8 @@ export const MgfMatrix = {
         },
         {
           "name": "platformCranker",
-          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
+          "address": "crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1",
+          "writable": true
         },
         {
           "name": "poolState",
@@ -1209,8 +1248,8 @@ export const MgfMatrix = {
   "errors": [
     {
       "code": 6000,
-      "name": "invalidQuoteToken",
-      "msg": "Invalid quote token"
+      "name": "transferFeeTooHigh",
+      "msg": "TransferFeeTooHigh max 900 bps"
     }
   ],
   "types": [
@@ -1958,6 +1997,34 @@ export const MgfMatrix = {
           {
             "name": "symbol",
             "type": "string"
+          },
+          {
+            "name": "taxRate",
+            "type": "u16"
+          },
+          {
+            "name": "burnRate",
+            "type": "u16"
+          },
+          {
+            "name": "distributionRate",
+            "type": "u16"
+          },
+          {
+            "name": "interval",
+            "type": {
+              "option": "i32"
+            }
+          },
+          {
+            "name": "distributionMint",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "uri",
+            "type": "string"
           }
         ]
       }
@@ -2008,12 +2075,24 @@ export const MgfMatrix = {
             "type": "pubkey"
           },
           {
-            "name": "amount",
+            "name": "quoteAmount",
             "type": "u64"
           },
           {
-            "name": "tokenMint",
+            "name": "baseAmount",
+            "type": "u64"
+          },
+          {
+            "name": "baseMint",
             "type": "pubkey"
+          },
+          {
+            "name": "quoteMint",
+            "type": "pubkey"
+          },
+          {
+            "name": "isBuy",
+            "type": "bool"
           }
         ]
       }
@@ -2023,7 +2102,7 @@ export const MgfMatrix = {
     {
       "name": "crankerFee",
       "type": "u64",
-      "value": "100000"
+      "value": "200000"
     },
     {
       "name": "memeDecimals",

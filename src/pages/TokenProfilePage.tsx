@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Timer, ArrowUpRight, ArrowDownRight, Copy, Check, Sparkles, Globe, X, MessageCircle, ExternalLink } from 'lucide-react';
 import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
@@ -67,14 +67,18 @@ const formatInterval = (seconds: number | null | undefined): string => {
 function TokenProfilePage() {
   const { tokenId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [tokenAddress, setTokenAddress] = useState<PublicKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'transactions' | 'holders'>('transactions');
-  const [tokenData, setTokenData] = useState<any>(null);
+  const [tokenData, setTokenData] = useState<any>(location.state?.initialTokenData || null);
 
   const [holders, setHolders] = useState<Holder[]>([]);
+
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleCopyAddress = async () => {
     try {
@@ -126,15 +130,34 @@ function TokenProfilePage() {
 
   useEffect(() => {
     if (tokenAddress) {
-      getTokenDataFromMintAddress(tokenAddress).then(data => {
-        setTokenData(data);
-        getTokenTopHolders(tokenAddress, data.totalSupply, data.price).then(holders => {
-          console.log(holders);
-          setHolders(holders);
-        });
-      });
+      setIsLoading(true); // Set loading to true when starting to fetch
+      // Only fetch data if we don't have initial data
+      if (!location.state?.initialTokenData) {
+        getTokenDataFromMintAddress(tokenAddress)
+          .then(data => {
+            if (data) {  // Add null check here
+              setTokenData(data);
+              return getTokenTopHolders(tokenAddress, data.totalSupply, data.price);
+            }
+            throw new Error('Failed to fetch token data');
+          })
+          .then(holders => {
+            if (holders) {  // Add null check here
+              setHolders(holders);
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching token data:', error);
+            setError('Failed to load token data');
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
     }
-  }, [tokenAddress])
+  }, [tokenAddress, location.state?.initialTokenData]);
 
   useEffect(() => {
     if (tokenAddress) {
@@ -207,6 +230,17 @@ function TokenProfilePage() {
     return new Intl.NumberFormat('en-US').format(balance);
   };
 
+  // Add loading state check in the render
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-screen p-2 sm:p-4 flex items-center justify-center">
+        <div className="terminal-card p-8">
+          <div className="text-[#00ff00] text-lg">Loading token data...</div>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="w-full min-h-screen p-2 sm:p-4 flex items-center justify-center">
@@ -217,11 +251,12 @@ function TokenProfilePage() {
     );
   }
 
-  if (!tokenAddress) {
+  // Add null check for tokenData
+  if (!tokenData) {
     return (
       <div className="w-full min-h-screen p-2 sm:p-4 flex items-center justify-center">
         <div className="terminal-card p-8">
-          <div className="text-[#00ff00] text-lg">Loading token data...</div>
+          <div className="text-red-400 text-lg">No token data available</div>
         </div>
       </div>
     );
@@ -317,7 +352,7 @@ function TokenProfilePage() {
                   <div className="text-right">
                     {tokenData ? (
                       <>
-                        <div className="text-xl">{formatPrice(tokenData.price)}</div>
+                        <div className="text-xl">{tokenData?.price ? formatPrice(tokenData.price) : '--'}</div>
                         {tokenData.priceChange24h &&
                           < div className={`flex items-center justify-end ${tokenData.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {tokenData.priceChange24h >= 0 ? <TrendUp size={14} /> : <TrendingDown size={14} />}
@@ -356,7 +391,7 @@ function TokenProfilePage() {
           {/* Chart */}
           <div className="lg:col-span-2">
             {tokenData ? (
-              <PriceChartWidget tokenAddress={tokenAddress.toString()} />
+              <PriceChartWidget tokenAddress={tokenAddress?.toString() || ''} />
             ) : (
               <div className="w-full h-full bg-white/10 animate-pulse" />
             )}
@@ -365,7 +400,11 @@ function TokenProfilePage() {
           {/* Trade Panel */}
           <div className="lg:col-span-1">
             {tokenData ? (
-              <TradePanel tokenSymbol={tokenData?.ticker} tokenPrice={tokenData?.price} tokenMintAddress={tokenAddress} />
+              <TradePanel
+                tokenSymbol={tokenData?.ticker}
+                tokenMintAddress={tokenAddress!}
+                poolId={new PublicKey(tokenData?.poolAddress)}
+              />
             ) : (
               <div className="w-full h-full bg-white/10 animate-pulse" />
             )}
