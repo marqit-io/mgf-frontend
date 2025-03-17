@@ -169,7 +169,6 @@ function TokenProfilePage() {
   useEffect(() => {
     if (tokenAddress) {
       fetchRecentTrades(tokenAddress.toString()).then(trades => {
-        console.log(trades);
         setTransactions(trades);
       });
       const unsubscribe = subscribeToTokenTrades(
@@ -621,8 +620,8 @@ function TokenProfilePage() {
                         </div>
                       )}
                     </td>
-                    <td className="py-4">{formatCurrency(tx.amountUsd * tokenData.price)}</td>
-                    <td className="py-4">{formatSolAmount(tx.amountSol * tokenData.price / solPrice)}</td>
+                    <td className="py-4">{formatCurrency(tx.amountUsd)}</td>
+                    <td className="py-4">{formatSolAmount(tx.amountSol)}</td>
                     <td className="py-4">{formatTxHash(tx.txHash)}</td>
                   </tr>
                 ))}

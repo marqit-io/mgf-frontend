@@ -5,6 +5,8 @@ import {
 } from '@solana/web3.js';
 import axios from 'axios';
 import { getSolPrice } from './getData';
+import { initializeRaydium } from './instructionBuilders';
+import { SqrtPriceMath } from '@raydium-io/raydium-sdk-v2';
 
 export interface TradeInfo {
     id: string;
@@ -17,7 +19,7 @@ export interface TradeInfo {
 
 // Cache token prices for 30 seconds
 const priceCache = new Map<string, { price: number; timestamp: number }>();
-const PRICE_CACHE_DURATION = 30000; // 30 seconds
+const PRICE_CACHE_DURATION = 10000; // 10 seconds
 
 async function getTokenPrice(mintAddress: string): Promise<number> {
     const cached = priceCache.get(mintAddress);
@@ -26,14 +28,18 @@ async function getTokenPrice(mintAddress: string): Promise<number> {
     }
 
     try {
-        const response = await axios.get(
-            `https://pro-api.solscan.io/v2.0/token/price?address=${mintAddress}`,
-            { headers: { token: import.meta.env.VITE_SOLSCAN_API_KEY } }
+        const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAddress}`)).data;
+        const raydium = await initializeRaydium();
+        const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
+        const priceInSol = SqrtPriceMath.sqrtPriceX64ToPrice(
+            computePoolInfo.sqrtPriceX64,
+            6, // Token decimals (usually 6 for custom tokens)
+            9  // WSOL decimals
         );
+        const solPrice = await getSolPrice();
 
-        const price = response.data.data[0].price;
-        priceCache.set(mintAddress, { price, timestamp: Date.now() });
-        return price;
+        priceCache.set(mintAddress, { price: Number(priceInSol) * solPrice, timestamp: Date.now() });
+        return Number(priceInSol) * solPrice;
     } catch (error) {
         console.error('Error fetching token price:', error);
         return cached?.price || 0;
@@ -108,7 +114,13 @@ export async function fetchRecentTrades(tokenMintAddress: string): Promise<Trade
         if (!tx) return null;
         return parseTokenTransaction(tx, tokenMintAddress);
     }));
-    return recentTrades.filter(trade => trade !== null);
+    return Promise.all(recentTrades.filter(trade => trade !== null).map(async trade => {
+        const price = await getTokenPrice(tokenMintAddress);
+        const solPrice = await getSolPrice();
+        trade.amountUsd *= price;
+        trade.amountSol = trade.amountUsd / solPrice;
+        return trade;
+    }));
 }
 
 export function subscribeToTokenTrades(
