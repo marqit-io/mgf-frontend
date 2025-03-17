@@ -119,7 +119,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
           poolId,
           WSOLMint, // Input mint (SOL)
           tokenMintAddress, // Output mint (Token)
-          Number(slippage),
+          Number(slippage) / 100,
           inputAmount
         );
         tx.add(buyIx);
@@ -148,7 +148,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
           poolId,
           tokenMintAddress, // Input mint (Token)
           WSOLMint, // Output mint (SOL)
-          Number(slippage),
+          Number(slippage) / 100,
           inputAmount
         );
         tx.add(sellIx);

@@ -25,16 +25,6 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
     const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAccount.toString()}`)).data;
     const metadataResponse = (await axios.get(changeGateway(tokenInfoResponse.uri))).data;
     const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`)).data;
-    const raydium = await initializeRaydium();
-    const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
-    const currentPrice = SqrtPriceMath.sqrtPriceX64ToPrice(
-        computePoolInfo.sqrtPriceX64,
-        6, // Token decimals (usually 6 for custom tokens)
-        9  // WSOL decimals
-    );
-    // Get SOL price to convert to USD
-    const solPrice = await getSolPrice();
-    const priceInUsd = Number(currentPrice) * solPrice;
     const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)).data;
 
     tokenData = {
@@ -46,8 +36,6 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
         profileImage: changeGateway(metadataResponse.image),
         description: metadataResponse.description,
         socialLinks: metadataResponse.attributes.socialLinks,
-        price: priceInUsd,
-        priceInSol: currentPrice,
         taxInfo: {
             total: taxInfoResponse.fee_rate,
             burn: taxInfoResponse.burn_rate,
@@ -162,9 +150,9 @@ export const getTokenTopHolders = async (mintAccount: PublicKey, totalSupply: nu
 
 export async function getSolPrice(): Promise<number> {
     try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
-        const data = await response.json();
-        return data.solana.usd;
+        axios.defaults.headers.common['token'] = import.meta.env.VITE_SOLSCAN_API_KEY;
+        const response = (await axios.get(`https://pro-api.solscan.io/v2.0/token/meta/?address=So11111111111111111111111111111111111111112`)).data.data;
+        return Number(response.price);
     } catch (error) {
         console.error('Error fetching SOL price:', error);
         return 0;

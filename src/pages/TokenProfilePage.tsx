@@ -4,8 +4,8 @@ import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Tim
 import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
 import { PublicKey } from '@solana/web3.js';
-import { getSolPrice, getTokenDataFromMintAddress, getTokenTopHolders } from '../utils/getData';
-import { subscribeToTokenTrades, fetchRecentTrades } from '../utils/trades';
+import { getTokenDataFromMintAddress, getTokenTopHolders } from '../utils/getData';
+import { subscribeToTokenTrades, fetchRecentTrades, getTokenPrice } from '../utils/trades';
 
 interface Transaction {
   id: string;
@@ -75,7 +75,8 @@ function TokenProfilePage() {
   const [activeTab, setActiveTab] = useState<'transactions' | 'holders'>('transactions');
   const [tokenData, setTokenData] = useState<any>(location.state?.initialTokenData || null);
   const [holders, setHolders] = useState<Holder[]>([]);
-  const [solPrice, setSolPrice] = useState(0);
+  const [price, setPrice] = useState<number>(0);
+  const [priceInSol, setPriceInSol] = useState<number>(0);
   // Add loading state
   const [isLoading, setIsLoading] = useState(true);
 
@@ -109,14 +110,6 @@ function TokenProfilePage() {
   const getSolscanTokenHoldersUrl = (address: string) => {
     return `https://solscan.io/token/${address}#holders`;
   };
-
-  useEffect(() => {
-    getSolPrice().then(price => {
-      setSolPrice(price);
-    }).catch(() => {
-      setSolPrice(125);
-    })
-  }, [])
 
   useEffect(() => {
     if (!tokenId) {
@@ -185,6 +178,34 @@ function TokenProfilePage() {
         unsubscribe();
       };
     }
+  }, [tokenAddress]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const updatePrice = async () => {
+      if (tokenAddress) {
+        try {
+          const { price, priceInSol } = await getTokenPrice(tokenAddress.toString());
+          setPrice(price);
+          setPriceInSol(priceInSol);
+        } catch (error) {
+          console.error('Error fetching token price:', error);
+        }
+      }
+    };
+
+    // Initial price fetch
+    updatePrice();
+
+    // Set up interval for price updates
+    intervalId = setInterval(updatePrice, 10000); // 10 seconds
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [tokenAddress]);
 
   const formatCurrency = (value: number | null | undefined) => {
@@ -358,9 +379,9 @@ function TokenProfilePage() {
                   <div className="text-right">
                     {tokenData ? (
                       <>
-                        <div className="text-xl">{tokenData?.price ? formatPrice(tokenData.price) : '--'}</div>
+                        <div className="text-xl">{price ? formatPrice(price) : '--'}</div>
                         {tokenData.priceChange24h &&
-                          < div className={`flex items-center justify-end ${tokenData.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          <div className={`flex items-center justify-end ${tokenData.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {tokenData.priceChange24h >= 0 ? <TrendUp size={14} /> : <TrendingDown size={14} />}
                             <span className="ml-1 text-sm">{tokenData.priceChange24h}%</span>
                           </div>
@@ -410,8 +431,8 @@ function TokenProfilePage() {
                 tokenSymbol={tokenData?.ticker}
                 tokenMintAddress={tokenAddress!}
                 poolId={new PublicKey(tokenData?.poolAddress)}
-                tokenPrice={tokenData?.price}
-                tokenPriceInSol={tokenData?.priceInSol}
+                tokenPrice={price}
+                tokenPriceInSol={priceInSol}
               />
             ) : (
               <div className="w-full h-full bg-white/10 animate-pulse" />

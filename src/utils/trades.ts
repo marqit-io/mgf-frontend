@@ -17,15 +17,8 @@ export interface TradeInfo {
     txHash: string;
 }
 
-// Cache token prices for 30 seconds
-const priceCache = new Map<string, { price: number; timestamp: number }>();
-const PRICE_CACHE_DURATION = 10000; // 10 seconds
 
-async function getTokenPrice(mintAddress: string): Promise<number> {
-    const cached = priceCache.get(mintAddress);
-    if (cached && Date.now() - cached.timestamp < PRICE_CACHE_DURATION) {
-        return cached.price;
-    }
+export async function getTokenPrice(mintAddress: string): Promise<{ price: number; priceInSol: number }> {
 
     try {
         const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAddress}`)).data;
@@ -37,12 +30,10 @@ async function getTokenPrice(mintAddress: string): Promise<number> {
             9  // WSOL decimals
         );
         const solPrice = await getSolPrice();
-
-        priceCache.set(mintAddress, { price: Number(priceInSol) * solPrice, timestamp: Date.now() });
-        return Number(priceInSol) * solPrice;
+        return { price: Number(priceInSol) * solPrice, priceInSol: Number(priceInSol) };
     } catch (error) {
         console.error('Error fetching token price:', error);
-        return cached?.price || 0;
+        return { price: 0, priceInSol: 0 };
     }
 }
 
@@ -115,10 +106,9 @@ export async function fetchRecentTrades(tokenMintAddress: string): Promise<Trade
         return parseTokenTransaction(tx, tokenMintAddress);
     }));
     return Promise.all(recentTrades.filter(trade => trade !== null).map(async trade => {
-        const price = await getTokenPrice(tokenMintAddress);
-        const solPrice = await getSolPrice();
-        trade.amountUsd *= price;
-        trade.amountSol = trade.amountUsd / solPrice;
+        const priceInfo = await getTokenPrice(tokenMintAddress);
+        trade.amountSol = trade.amountUsd * priceInfo.priceInSol;
+        trade.amountUsd *= priceInfo.price;
         return trade;
     }));
 }
@@ -153,12 +143,9 @@ export function subscribeToTokenTrades(
                 if (tx) {
                     const tradeInfo = parseTokenTransaction(tx, tokenMintAddress);
                     if (tradeInfo) {
-                        // Get current token price
-                        const price = await getTokenPrice(tokenMintAddress);
-                        const solPrice = await getSolPrice();
-                        // Update USD amount with current price
-                        tradeInfo.amountUsd *= price;
-                        tradeInfo.amountSol = tradeInfo.amountUsd / solPrice;
+                        const priceInfo = await getTokenPrice(tokenMintAddress);
+                        tradeInfo.amountSol = tradeInfo.amountUsd * priceInfo.priceInSol;
+                        tradeInfo.amountUsd *= priceInfo.price;
 
                         onTrade(tradeInfo);
                     }
