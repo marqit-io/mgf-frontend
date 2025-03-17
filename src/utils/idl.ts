@@ -32,9 +32,7 @@ export const MgfMatrix = {
         },
         {
           "name": "payer",
-          "docs": [
-            "The user performing the swap"
-          ],
+          "writable": true,
           "signer": true
         },
         {
@@ -67,7 +65,60 @@ export const MgfMatrix = {
           "docs": [
             "The user token account for output token"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram2022"
+              },
+              {
+                "kind": "account",
+                "path": "outputVaultMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
           "name": "inputVault",
@@ -89,6 +140,18 @@ export const MgfMatrix = {
             "The program account for the most recent oracle observation"
           ],
           "writable": true
+        },
+        {
+          "name": "inputVaultMint",
+          "docs": [
+            "The mint of token vault 0"
+          ]
+        },
+        {
+          "name": "outputVaultMint",
+          "docs": [
+            "The mint of token vault 1"
+          ]
         },
         {
           "name": "tokenProgram",
@@ -119,16 +182,8 @@ export const MgfMatrix = {
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "inputVaultMint",
-          "docs": [
-            "The mint of token vault 0"
-          ]
-        },
-        {
-          "name": "outputVaultMint",
-          "docs": [
-            "The mint of token vault 1"
-          ]
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [
@@ -897,9 +952,7 @@ export const MgfMatrix = {
         },
         {
           "name": "payer",
-          "docs": [
-            "The user performing the swap"
-          ],
+          "writable": true,
           "signer": true
         },
         {
@@ -932,7 +985,60 @@ export const MgfMatrix = {
           "docs": [
             "The user token account for output token"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "payer"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "outputVaultMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
           "name": "inputVault",
@@ -994,6 +1100,10 @@ export const MgfMatrix = {
           "docs": [
             "The mint of token vault 1"
           ]
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         }
       ],
       "args": [

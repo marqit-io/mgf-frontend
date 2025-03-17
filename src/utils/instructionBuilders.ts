@@ -584,6 +584,7 @@ export async function buildBuyInstruction(
             tokenProgram2022: TOKEN_2022_PROGRAM_ID,
             memoProgram: MEMO_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         }).remainingAccounts(accountMetas)
         .instruction();
 }
@@ -703,6 +704,7 @@ export async function buildSellInstruction(
             tokenProgram2022: TOKEN_2022_PROGRAM_ID,
             memoProgram: MEMO_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
+            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         }).remainingAccounts(accountMetas)
         .instruction();
 }

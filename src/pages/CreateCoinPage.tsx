@@ -461,46 +461,7 @@ function CreateCoinPage() {
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const priceInSOL = SqrtPriceMath.sqrtPriceX64ToPrice(poolParams.initialSqrtPriceX64, 6, 9);
-        const solPrice = await getSolPrice();
-        const priceInUSD = Number(priceInSOL) * solPrice;
-
-        navigate(`/token/${mintKeypair.publicKey.toBase58()}`, {
-          state: {
-            initialTokenData: {
-              name: formData.name,
-              ticker: formData.ticker,
-              description: formData.description,
-              profileImage: URL.createObjectURL(selectedFile),
-              contractAddress: mintKeypair.publicKey.toString(),
-              contractAddressShort: `${mintKeypair.publicKey.toString().slice(0, 4)}...${mintKeypair.publicKey.toString().slice(-4)}`,
-              price: priceInUSD,
-              priceChange24h: undefined,
-              marketCap: priceInUSD * 100000000,
-              volume24h: undefined,
-              holders: 1,
-              glitched: undefined,
-              glitchType: formData.taxOption.toUpperCase(),
-              socialLinks: {
-                website: formData.websiteLink || undefined,
-                twitter: formData.twitterLink || undefined,
-                telegram: formData.telegramLink || undefined,
-              },
-              taxInfo: {
-                total: formData.transferTax * 100,
-                burn: formData.taxDistribution.burn * formData.transferTax,
-                distribute: formData.taxDistribution.distribute * formData.transferTax,
-                interval: formData.glitchInterval,
-                distributionToken: formData.tokenDistribution.token ? {
-                  address: formData.tokenDistribution.token.address,
-                  symbol: formData.tokenDistribution.token.symbol,
-                  name: formData.tokenDistribution.token.name
-                } : undefined
-              }
-            }
-          }
-        });
-
+        navigate(`/token/${mintKeypair.publicKey.toBase58()}`);
       } catch (error: any) {
         console.error('Transaction error:', error);
         if (error.name === 'SendTransactionError') {

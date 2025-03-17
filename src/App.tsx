@@ -1,17 +1,36 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import CreateCoinPage from './pages/CreateCoinPage';
 import TokenProfilePage from './pages/TokenProfilePage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import GlitchVisionPage from './pages/GlitchVisionPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
 import { TokenProvider } from './context/TokenContext';
 import { SearchProvider } from './context/SearchContext';
 import { WalletButton } from './components/WalletButton';
 import { SearchBar } from './components/SearchBar';
 import { ArrowUpRight } from 'lucide-react';
 import { WalletContextProvider } from './context/WalletContext';
+import { TosCheck } from './components/TosCheck';
+import { DisclaimerPopup } from './components/DisclaimerPopup';
 
 function App() {
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
+  useEffect(() => {
+    const hasAccepted = localStorage.getItem('disclaimerAccepted');
+    if (!hasAccepted) {
+      setShowDisclaimer(true);
+    }
+  }, []);
+
+  const handleAcceptDisclaimer = () => {
+    localStorage.setItem('disclaimerAccepted', 'true');
+    setShowDisclaimer(false);
+  };
+
   return (
     <WalletContextProvider>
       <TokenProvider>
@@ -53,13 +72,38 @@ function App() {
 
                 <Routes>
                   <Route path="/" element={<HomePage />} />
-                  <Route path="/create" element={<CreateCoinPage />} />
-                  <Route path="/token/:tokenId" element={<TokenProfilePage />} />
-                  <Route path="/how-it-works" element={<HowItWorksPage />} />
-                  <Route path="/glitch-vision" element={<GlitchVisionPage />} />
+                  <Route path="/create" element={
+                    <>
+                      <TosCheck />
+                      <CreateCoinPage />
+                    </>
+                  } />
+                  <Route path="/token/:tokenId" element={
+                    <>
+                      <TosCheck />
+                      <TokenProfilePage />
+                    </>
+                  } />
+                  <Route path="/how-it-works" element={
+                    <>
+                      <TosCheck />
+                      <HowItWorksPage />
+                    </>
+                  } />
+                  <Route path="/glitch-vision" element={
+                    <>
+                      <TosCheck />
+                      <GlitchVisionPage />
+                    </>
+                  } />
+                  <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                  <Route path="/terms-of-service" element={<TermsOfServicePage />} />
                 </Routes>
               </div>
             </div>
+            {showDisclaimer && (
+              <DisclaimerPopup onAccept={handleAcceptDisclaimer} />
+            )}
           </Router>
         </SearchProvider>
       </TokenProvider>

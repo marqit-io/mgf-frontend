@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown, LineChart, Sparkles, Zap, Timer, Flame, Gift, ChevronDown, ChevronUp, ArrowUpRight, Twitter } from 'lucide-react';
+import { TrendingUp, TrendingDown, LineChart, Sparkles, Zap, Timer, Flame, Gift, ChevronDown, ChevronUp, ArrowUpRight, Twitter, X } from 'lucide-react';
 import { getTopGlitchTokens, getTotalStats } from '../utils/getData';
 import { MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
+
+const TOS_STORAGE_KEY = 'mgf_tos_agreed';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ function HomePage() {
   const [totalStats, setTotalStats] = useState<any>(null);
   const [totalStatsLoading, setTotalStatsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [showTosModal, setShowTosModal] = useState(false);
 
   const timeframes = [
     { value: '24h', label: '24HR', icon: LineChart },
@@ -71,6 +74,13 @@ function HomePage() {
     });
 
     return unSubscribe;
+  }, []);
+
+  useEffect(() => {
+    const tosStatus = localStorage.getItem(TOS_STORAGE_KEY);
+    if (!tosStatus) {
+      setShowTosModal(true);
+    }
   }, []);
 
   const getActionColor = (token: typeof tokens[0]) => {
@@ -166,370 +176,372 @@ function HomePage() {
   };
 
   return (
-    <div className="w-full space-y-4 sm:space-y-8 px-2 sm:px-0">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="terminal-card create-token-card p-3 sm:p-4">
-          <h2 className="terminal-header mb-3 sm:mb-4">&gt; CREATE_TOKEN</h2>
-          <p className="text-sm opacity-70 mb-4">
-            Launch your own token with custom tax and distribution settings
-          </p>
-          <button
-            onClick={() => navigate('/create')}
-            className="terminal-button w-full py-2 flex items-center justify-center gap-2 group"
-          >
-            <span>&gt; EXECUTE_PROGRAM</span>
-            <ArrowUpRight
-              size={16}
-              className="text-[#00ff00] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-            />
-          </button>
-        </div>
-
-        <div className="terminal-card p-3 sm:p-4">
-          <h2 className="terminal-header mb-3 sm:mb-4">&gt; ECOSYSTEM_DATA</h2>
-          <div className="space-y-2">
-            {totalStatsLoading ? (
-              <>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_GLITCHES:</span>
-                  <div className="w-24 h-6 bg-gray-800 rounded animate-pulse"></div>
-                </div>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_REWARDS:</span>
-                  <div className="w-24 h-6 bg-gray-800 rounded animate-pulse"></div>
-                </div>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_BURNED:</span>
-                  <div className="w-24 h-6 bg-gray-800 rounded animate-pulse"></div>
-                </div>
-              </>
-            ) : totalStats ? (
-              <>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_GLITCHES:</span>
-                  <span className="terminal-value">{totalStats.total_tokens || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_REWARDS:</span>
-                  <span className="terminal-value">{formatCurrency(totalStats.total_distributed || 0)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_BURNED:</span>
-                  <span className="terminal-value">{formatCurrency(totalStats.total_burned || 0)}</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_GLITCHES:</span>
-                  <span className="terminal-value opacity-50">N/A</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_REWARDS:</span>
-                  <span className="terminal-value opacity-50">N/A</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>&gt; TOTAL_BURNED:</span>
-                  <span className="terminal-value opacity-50">N/A</span>
-                </div>
-              </>
-            )}
+    <>
+      <div className="w-full space-y-4 sm:space-y-8 px-2 sm:px-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="terminal-card create-token-card p-3 sm:p-4">
+            <h2 className="terminal-header mb-3 sm:mb-4">&gt; CREATE_TOKEN</h2>
+            <p className="text-sm opacity-70 mb-4">
+              Launch your own token with custom tax and distribution settings
+            </p>
+            <button
+              onClick={() => navigate('/create')}
+              className="terminal-button w-full py-2 flex items-center justify-center gap-2 group"
+            >
+              <span>&gt; EXECUTE_PROGRAM</span>
+              <ArrowUpRight
+                size={16}
+                className="text-[#00ff00] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
+            </button>
           </div>
-        </div>
-      </div>
 
-      <div className="terminal-card p-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <h2 className="terminal-header text-xl">&gt; TOP_GLITCH</h2>
-
-          <button
-            className="sm:hidden terminal-button w-full flex items-center justify-between px-4 py-2"
-            onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-          >
-            <span>FILTERS</span>
-            {isFiltersExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-black/30 rounded border border-[#00ff00]/20">
-            <span className="text-sm opacity-70">VIEWING:</span>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <LineChart size={14} className="text-[#00ff00]" />
-                <span className="text-[#00ff00]">{timeframe.toUpperCase()}</span>
-              </div>
-              <span className="opacity-30">|</span>
-              <div className="flex items-center gap-1">
-                {(() => {
-                  const option = sortOptions.find(opt => opt.value === sortBy);
-                  const Icon = option?.icon || LineChart;
-                  return <Icon size={14} className="text-[#00ff00]" />;
-                })()}
-                <span className="text-[#00ff00]">
-                  {sortOptions.find(opt => opt.value === sortBy)?.label}
-                </span>
-              </div>
-              <span className="opacity-30">|</span>
-              <div className="flex items-center gap-1">
-                {(() => {
-                  const type = glitchTypes.find(t => t.value === glitchType);
-                  const Icon = type?.icon || Sparkles;
-                  return <Icon size={14} className={type?.color || 'text-[#00ff00]'} />;
-                })()}
-                <span className={glitchTypes.find(type => type.value === glitchType)?.color}>
-                  {glitchType}
-                </span>
-              </div>
+          <div className="terminal-card p-3 sm:p-4">
+            <h2 className="terminal-header mb-3 sm:mb-4">&gt; ECOSYSTEM_DATA</h2>
+            <div className="space-y-2">
+              {totalStatsLoading ? (
+                <>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_GLITCHES:</span>
+                    <div className="w-24 h-6 bg-gray-800 rounded animate-pulse"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_REWARDS:</span>
+                    <div className="w-24 h-6 bg-gray-800 rounded animate-pulse"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_BURNED:</span>
+                    <div className="w-24 h-6 bg-gray-800 rounded animate-pulse"></div>
+                  </div>
+                </>
+              ) : totalStats ? (
+                <>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_GLITCHES:</span>
+                    <span className="terminal-value">{totalStats.total_tokens || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_REWARDS:</span>
+                    <span className="terminal-value">{formatCurrency(totalStats.total_distributed || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_BURNED:</span>
+                    <span className="terminal-value">{formatCurrency(totalStats.total_burned || 0)}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_GLITCHES:</span>
+                    <span className="terminal-value opacity-50">N/A</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_REWARDS:</span>
+                    <span className="terminal-value opacity-50">N/A</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>&gt; TOTAL_BURNED:</span>
+                    <span className="terminal-value opacity-50">N/A</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 ${isFiltersExpanded ? 'block' : 'hidden sm:grid'}`}>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm opacity-70">
-              <Sparkles size={14} />
-              <span>&gt; FILTER_TYPE</span>
+        <div className="terminal-card p-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="terminal-header text-xl">&gt; TOP_GLITCH</h2>
+
+            <button
+              className="sm:hidden terminal-button w-full flex items-center justify-between px-4 py-2"
+              onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+            >
+              <span>FILTERS</span>
+              {isFiltersExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-black/30 rounded border border-[#00ff00]/20">
+              <span className="text-sm opacity-70">VIEWING:</span>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <LineChart size={14} className="text-[#00ff00]" />
+                  <span className="text-[#00ff00]">{timeframe.toUpperCase()}</span>
+                </div>
+                <span className="opacity-30">|</span>
+                <div className="flex items-center gap-1">
+                  {(() => {
+                    const option = sortOptions.find(opt => opt.value === sortBy);
+                    const Icon = option?.icon || LineChart;
+                    return <Icon size={14} className="text-[#00ff00]" />;
+                  })()}
+                  <span className="text-[#00ff00]">
+                    {sortOptions.find(opt => opt.value === sortBy)?.label}
+                  </span>
+                </div>
+                <span className="opacity-30">|</span>
+                <div className="flex items-center gap-1">
+                  {(() => {
+                    const type = glitchTypes.find(t => t.value === glitchType);
+                    const Icon = type?.icon || Sparkles;
+                    return <Icon size={14} className={type?.color || 'text-[#00ff00]'} />;
+                  })()}
+                  <span className={glitchTypes.find(type => type.value === glitchType)?.color}>
+                    {glitchType}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {glitchTypes.map(type => {
-                const Icon = type.icon;
-                return (
+          </div>
+
+          <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 ${isFiltersExpanded ? 'block' : 'hidden sm:grid'}`}>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm opacity-70">
+                <Sparkles size={14} />
+                <span>&gt; FILTER_TYPE</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {glitchTypes.map(type => {
+                  const Icon = type.icon;
+                  return (
+                    <button
+                      key={type.value}
+                      onClick={() => setGlitchType(type.value as typeof glitchType)}
+                      className={`terminal-button px-2 py-1.5 text-xs transition-all duration-200 flex items-center gap-1.5
+                        ${glitchType === type.value
+                          ? 'bg-[#00ff00]/20 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                          : 'hover:bg-[#00ff00]/10'}`}
+                    >
+                      <Icon size={12} className={type.color} />
+                      {type.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm opacity-70">
+                <LineChart size={14} />
+                <span>&gt; TIMEFRAME</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {timeframes.map(tf => (
                   <button
-                    key={type.value}
-                    onClick={() => setGlitchType(type.value as typeof glitchType)}
-                    className={`terminal-button px-2 py-1.5 text-xs transition-all duration-200 flex items-center gap-1.5
-                      ${glitchType === type.value
+                    key={tf.value}
+                    onClick={() => setTimeframe(tf.value)}
+                    className={`terminal-button px-2 py-1.5 text-xs transition-all duration-200
+                      ${timeframe === tf.value
                         ? 'bg-[#00ff00]/20 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
                         : 'hover:bg-[#00ff00]/10'}`}
                   >
-                    <Icon size={12} className={type.color} />
-                    {type.label}
+                    {tf.label}
                   </button>
-                );
-              })}
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm opacity-70">
+                <LineChart size={14} />
+                <span>&gt; SORT_BY</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {sortOptions.map(option => {
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => setSortBy(option.value)}
+                      className={`terminal-button px-2 py-1.5 text-xs transition-all duration-200 flex items-center gap-1.5
+                        ${sortBy === option.value
+                          ? 'bg-[#00ff00]/20 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                          : 'hover:bg-[#00ff00]/10'}`}
+                    >
+                      <Icon size={12} className="text-[#00ff00]" />
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm opacity-70">
-              <LineChart size={14} />
-              <span>&gt; TIMEFRAME</span>
+          <div className="overflow-x-auto -mx-4">
+            <div className="min-w-[800px] px-4">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left">
+                    <th className="terminal-dim pb-2 text-sm">&gt; TOKEN</th>
+                    <th className="terminal-dim pb-2 text-sm">&gt; PRICE</th>
+                    <th className={`pb-2 text-sm text-[#00ff00]`}>
+                      &gt; 24H
+                    </th>
+                    <th className={`pb-2 text-sm ${sortBy === 'marketCap' ? 'text-[#00ff00]' : 'terminal-dim'}`}>
+                      &gt; MARKET CAP
+                    </th>
+                    <th className={`pb-2 text-sm ${sortBy === 'volume24h' ? 'text-[#00ff00]' : 'terminal-dim'}`}>
+                      &gt; VOLUME
+                    </th>
+                    <th className={`pb-2 text-sm ${sortBy === 'glitches' ? 'text-[#00ff00]' : 'terminal-dim'}`}>
+                      &gt; GLITCHES
+                    </th>
+                    <th className="pb-2 text-sm text-[#00ff00]">&gt; TYPE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-sm opacity-70">
+                        Loading tokens...
+                      </td>
+                    </tr>
+                  ) : tokens.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-sm opacity-70">
+                        No tokens found
+                      </td>
+                    </tr>
+                  ) : (
+                    sortAndFilterTokens(tokens).map(token => (
+                      <tr
+                        key={token.id}
+                        className="border-t border-[#00ff00]/20 cursor-pointer hover:bg-[#00ff00]/10 transition-colors"
+                        onClick={() => handleTokenClick(token.id)}
+                      >
+                        <td className="py-3 text-sm">{token.name}</td>
+                        <td className="py-3 text-sm">{formatCurrency(token.price)}</td>
+                        <td className="py-3">
+                          <div className={`flex items-center gap-1 text-sm ${token.priceChange >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                            {token.priceChange >= 0 ? (
+                              <TrendingUp size={14} />
+                            ) : (
+                              <TrendingDown size={14} />
+                            )}
+                            {formatPercentage(token.priceChange)}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-1 text-sm">
+                            <LineChart size={14} className="opacity-50" />
+                            {formatCurrency(token.marketCap)}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-1 text-sm">
+                            <LineChart size={14} className="opacity-50" />
+                            {formatCurrency(token.volume24h)}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Sparkles size={14} className="opacity-50" />
+                            {formatCurrency(token.glitchesDistributed)}
+                          </div>
+                        </td>
+                        <td className="py-3 text-sm">
+                          <div className="flex items-center gap-1">
+                            {getActionIcon(token)}
+                            <span className={getActionColor(token)}>
+                              {getActionLabel(token)}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {timeframes.map(tf => (
-                <button
-                  key={tf.value}
-                  onClick={() => setTimeframe(tf.value)}
-                  className={`terminal-button px-2 py-1.5 text-xs transition-all duration-200
-                    ${timeframe === tf.value
-                      ? 'bg-[#00ff00]/20 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
-                      : 'hover:bg-[#00ff00]/10'}`}
+          </div>
+        </div>
+
+        <div className="terminal-card p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="terminal-header">&gt; GLITCH_VISION</h2>
+            <Link
+              to="/glitch-vision"
+              className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5 hover:bg-[#00ff00]/10"
+            >
+              VIEW_ALL
+              <ArrowUpRight size={14} className="text-[#00ff00]" />
+            </Link>
+          </div>
+          <div className="flex-grow h-[calc(100vh-280px)] min-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-2">
+              {liveFeed.map((item) => (
+                <div
+                  key={item.mintAddress}
+                  className="flex items-start gap-3 p-3 border-t border-[#00ff00]/20 first:border-t-0 hover:bg-[#00ff00]/5 transition-colors cursor-pointer bg-black/30"
+                  onClick={() => navigate(`/token/${item.mintAddress}`)}
                 >
-                  {tf.label}
-                </button>
+                  <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-[#00ff00]/30">
+                    <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                  </div>
+
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <Zap size={14} className="text-[#00ff00] flex-shrink-0" />
+                      <span className="font-semibold truncate">{item.name}</span>
+                      <span className="text-xs opacity-70">({item.symbol})</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm whitespace-nowrap overflow-hidden">
+                      <Timer size={14} className="text-[#00ff00] flex-shrink-0" />
+                      <span className="opacity-70">Tax:</span>
+                      {getTaxDistributionLabel({ enabled: item.taxRate != 0, total: item.taxRate, distribution: { burn: item.burnRate, reward: item.distributionRate } })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end text-xs">
+                    <span className="opacity-70 whitespace-nowrap">{formatTime(item.timestamp)}</span>
+                    <span className="font-mono">{item.mintAddress}</span>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm opacity-70">
-              <LineChart size={14} />
-              <span>&gt; SORT_BY</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {sortOptions.map(option => {
-                const Icon = option.icon;
-                return (
-                  <button
-                    key={option.value}
-                    onClick={() => setSortBy(option.value)}
-                    className={`terminal-button px-2 py-1.5 text-xs transition-all duration-200 flex items-center gap-1.5
-                      ${sortBy === option.value
-                        ? 'bg-[#00ff00]/20 border-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
-                        : 'hover:bg-[#00ff00]/10'}`}
-                  >
-                    <Icon size={12} className="text-[#00ff00]" />
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
-        <div className="overflow-x-auto -mx-4">
-          <div className="min-w-[800px] px-4">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left">
-                  <th className="terminal-dim pb-2 text-sm">&gt; TOKEN</th>
-                  <th className="terminal-dim pb-2 text-sm">&gt; PRICE</th>
-                  <th className={`pb-2 text-sm text-[#00ff00]`}>
-                    &gt; 24H
-                  </th>
-                  <th className={`pb-2 text-sm ${sortBy === 'marketCap' ? 'text-[#00ff00]' : 'terminal-dim'}`}>
-                    &gt; MARKET CAP
-                  </th>
-                  <th className={`pb-2 text-sm ${sortBy === 'volume24h' ? 'text-[#00ff00]' : 'terminal-dim'}`}>
-                    &gt; VOLUME
-                  </th>
-                  <th className={`pb-2 text-sm ${sortBy === 'glitches' ? 'text-[#00ff00]' : 'terminal-dim'}`}>
-                    &gt; GLITCHES
-                  </th>
-                  <th className="pb-2 text-sm text-[#00ff00]">&gt; TYPE</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-sm opacity-70">
-                      Loading tokens...
-                    </td>
-                  </tr>
-                ) : tokens.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-sm opacity-70">
-                      No tokens found
-                    </td>
-                  </tr>
-                ) : (
-                  sortAndFilterTokens(tokens).map(token => (
-                    <tr
-                      key={token.id}
-                      className="border-t border-[#00ff00]/20 cursor-pointer hover:bg-[#00ff00]/10 transition-colors"
-                      onClick={() => handleTokenClick(token.id)}
-                    >
-                      <td className="py-3 text-sm">{token.name}</td>
-                      <td className="py-3 text-sm">{formatCurrency(token.price)}</td>
-                      <td className="py-3">
-                        <div className={`flex items-center gap-1 text-sm ${token.priceChange >= 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                          {token.priceChange >= 0 ? (
-                            <TrendingUp size={14} />
-                          ) : (
-                            <TrendingDown size={14} />
-                          )}
-                          {formatPercentage(token.priceChange)}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-1 text-sm">
-                          <LineChart size={14} className="opacity-50" />
-                          {formatCurrency(token.marketCap)}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-1 text-sm">
-                          <LineChart size={14} className="opacity-50" />
-                          {formatCurrency(token.volume24h)}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Sparkles size={14} className="opacity-50" />
-                          {formatCurrency(token.glitchesDistributed)}
-                        </div>
-                      </td>
-                      <td className="py-3 text-sm">
-                        <div className="flex items-center gap-1">
-                          {getActionIcon(token)}
-                          <span className={getActionColor(token)}>
-                            {getActionLabel(token)}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div className="terminal-card p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="terminal-header">&gt; GLITCH_VISION</h2>
-          <Link
-            to="/glitch-vision"
-            className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5 hover:bg-[#00ff00]/10"
-          >
-            VIEW_ALL
-            <ArrowUpRight size={14} className="text-[#00ff00]" />
-          </Link>
-        </div>
-        <div className="flex-grow h-[calc(100vh-280px)] min-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-          <div className="space-y-2">
-            {liveFeed.map((item) => (
-              <div
-                key={item.mintAddress}
-                className="flex items-start gap-3 p-3 border-t border-[#00ff00]/20 first:border-t-0 hover:bg-[#00ff00]/5 transition-colors cursor-pointer bg-black/30"
-                onClick={() => navigate(`/token/${item.mintAddress}`)}
-              >
-                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-[#00ff00]/30">
-                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                </div>
-
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <Zap size={14} className="text-[#00ff00] flex-shrink-0" />
-                    <span className="font-semibold truncate">{item.name}</span>
-                    <span className="text-xs opacity-70">({item.symbol})</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm whitespace-nowrap overflow-hidden">
-                    <Timer size={14} className="text-[#00ff00] flex-shrink-0" />
-                    <span className="opacity-70">Tax:</span>
-                    {getTaxDistributionLabel({ enabled: item.taxRate != 0, total: item.taxRate, distribution: { burn: item.burnRate, reward: item.distributionRate } })}
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-end text-xs">
-                  <span className="opacity-70 whitespace-nowrap">{formatTime(item.timestamp)}</span>
-                  <span className="font-mono">{item.mintAddress}</span>
-                </div>
+        <footer className="mt-8 mb-4">
+          <div className="terminal-card p-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-center gap-2">
+                <a
+                  href="https://twitter.com/moneyglitchfun"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5"
+                >
+                  <Twitter size={14} className="text-[#00ff00]" />
+                  FOLLOW
+                </a>
+                <a
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5"
+                >
+                  SUPPORT
+                  <ArrowUpRight size={14} className="text-[#00ff00]" />
+                </a>
+                <Link
+                  to="/how-it-works"
+                  className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5"
+                >
+                  HOW_IT_WORKS
+                  <ArrowUpRight size={14} className="text-[#00ff00]" />
+                </Link>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      <footer className="mt-8 mb-4">
-        <div className="terminal-card p-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-center gap-2">
-              <a
-                href="https://twitter.com/moneyglitchfun"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5"
-              >
-                <Twitter size={14} className="text-[#00ff00]" />
-                FOLLOW
-              </a>
-              <a
-                href="#"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5"
-              >
-                SUPPORT
-                <ArrowUpRight size={14} className="text-[#00ff00]" />
-              </a>
-              <Link
-                to="/how-it-works"
-                className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5"
-              >
-                HOW_IT_WORKS
-                <ArrowUpRight size={14} className="text-[#00ff00]" />
-              </Link>
+              <div className="text-center text-xs opacity-70">&gt; POWERED_BY_MONEYGLITCH.FUN</div>
             </div>
-
-            <div className="text-center text-xs opacity-70">&gt; POWERED_BY_MONEYGLITCH.FUN</div>
           </div>
-        </div>
-        <div className='h-4' />
-      </footer>
-    </div>
+          <div className='h-4' />
+        </footer>
+      </div>
+    </>
   );
 }
 
