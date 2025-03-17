@@ -1,14 +1,12 @@
 import { PublicKey, Connection } from '@solana/web3.js';
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownRight, Loader2, CheckCircle2 } from 'lucide-react';
-import { getSolBalance, getSolPrice, getTokenBalance } from '../utils/getData';
+import { getSolBalance, getTokenBalance } from '../utils/getData';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { buildBuyInstruction, buildSellInstruction, buildWrapSolInstruction, buildUnwrapSolInstruction } from '../utils/instructionBuilders';
 import { Transaction } from '@solana/web3.js';
 import { WSOLMint } from "@raydium-io/raydium-sdk-v2";
 import { BN } from '@coral-xyz/anchor';
-import { initializeRaydium } from '../utils/instructionBuilders';
-import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2";
 import { getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { createAssociatedTokenAccountInstruction } from '@solana/spl-token';
 
@@ -16,9 +14,11 @@ interface TradePanelProps {
   tokenSymbol: string;
   poolId: PublicKey;
   tokenMintAddress: PublicKey;
+  tokenPriceInSol: number;
+  tokenPrice: number;
 }
 
-export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanelProps) {
+export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceInSol, tokenPrice }: TradePanelProps) {
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('1');
@@ -30,8 +30,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
   const [estimatedOutput, setEstimatedOutput] = useState<number | null>(null);
   const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
   const [success, setSuccess] = useState<{ message: string; signature: string } | null>(null);
-  const [tokenPriceInSol, setTokenPriceInSol] = useState(0);
-  const [tokenPrice, setTokenPrice] = useState(0);
 
   useEffect(() => {
     if (publicKey) {
@@ -70,43 +68,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
     }
   };
 
-  // Add useEffect to fetch pool price when component mounts
-  useEffect(() => {
-    const fetchPoolPrice = async () => {
-      if (!poolId) return;
-
-      try {
-        const raydium = await initializeRaydium();
-
-        // Get pool info from RPC
-        const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolId.toString());
-        // Calculate price from sqrt price
-        const currentPrice = SqrtPriceMath.sqrtPriceX64ToPrice(
-          computePoolInfo.sqrtPriceX64,
-          6, // Token decimals (usually 6 for custom tokens)
-          9  // WSOL decimals
-        );
-
-        setTokenPriceInSol(Number(currentPrice));
-
-        // Get SOL price to convert to USD
-        const solPrice = await getSolPrice();
-        const priceInUsd = Number(currentPrice) * solPrice;
-        setTokenPrice(priceInUsd);
-      } catch (error) {
-        console.error('Error fetching pool price:', error);
-        setError('Failed to fetch current price');
-      }
-    };
-
-    // Fetch initial price
-    fetchPoolPrice();
-
-    // Set up interval to update price periodically
-    const interval = setInterval(fetchPoolPrice, 10000); // Update every 10 seconds
-    return () => clearInterval(interval);
-  }, []);
-
   // Replace handleTrade with this implementation
   const handleTrade = async () => {
     if (!connected || !signTransaction || !publicKey || !poolId) {
@@ -119,8 +80,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
       setError(null);
       setSuccess(null);
       validateTrade();
-
-      const inputAmount = new BN(Math.floor(parseFloat(amount) * 1e9)); // Convert to lamports
 
       // Create transaction
       const tx = new Transaction();
@@ -136,6 +95,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
       );
 
       if (tradeType === 'buy') {
+        const inputAmount = new BN(Math.floor(parseFloat(amount) * 1e9)); // Convert to lamports
         // Check if token account exists and create if needed
         try {
           await connection.getAccountInfo(tokenAccount);
@@ -168,6 +128,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
         const unwrapSolIx = await buildUnwrapSolInstruction(publicKey);
         tx.add(unwrapSolIx);
       } else {
+        const inputAmount = new BN(Math.floor(parseFloat(amount) * 1e6)); // Convert to lamports
         // For selling, we need to ensure WSOL account exists
         try {
           await connection.getAccountInfo(wsolAccount);
@@ -217,7 +178,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
 
       // Set success message
       setSuccess({
-        message: `Successfully ${tradeType === 'buy' ? 'bought' : 'sold'} ${inputAmount.toNumber() / 1e9} ${tradeType === 'buy' ? 'SOL' : tokenSymbol}`,
+        message: `Successfully ${tradeType === 'buy' ? 'bought' : 'sold'} ${amount} ${tradeType === 'buy' ? 'SOL' : tokenSymbol}`,
         signature
       });
 

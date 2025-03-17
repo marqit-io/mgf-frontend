@@ -74,9 +74,7 @@ function TokenProfilePage() {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'transactions' | 'holders'>('transactions');
   const [tokenData, setTokenData] = useState<any>(location.state?.initialTokenData || null);
-
   const [holders, setHolders] = useState<Holder[]>([]);
-
   // Add loading state
   const [isLoading, setIsLoading] = useState(true);
 
@@ -404,6 +402,8 @@ function TokenProfilePage() {
                 tokenSymbol={tokenData?.ticker}
                 tokenMintAddress={tokenAddress!}
                 poolId={new PublicKey(tokenData?.poolAddress)}
+                tokenPrice={tokenData?.price}
+                tokenPriceInSol={tokenData?.priceInSol}
               />
             ) : (
               <div className="w-full h-full bg-white/10 animate-pulse" />

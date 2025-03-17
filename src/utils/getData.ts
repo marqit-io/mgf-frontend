@@ -1,6 +1,8 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import axios from 'axios';
+import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2"
+import { initializeRaydium } from './instructionBuilders';
 
 interface Holder {
     address: string;
@@ -21,9 +23,18 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
     let tokenData: any = {};
     const tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`)).data;
     const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAccount.toString()}`)).data;
-    console.log(poolResponse);
     const metadataResponse = (await axios.get(changeGateway(tokenInfoResponse.uri))).data;
     const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`)).data;
+    const raydium = await initializeRaydium();
+    const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
+    const currentPrice = SqrtPriceMath.sqrtPriceX64ToPrice(
+        computePoolInfo.sqrtPriceX64,
+        6, // Token decimals (usually 6 for custom tokens)
+        9  // WSOL decimals
+    );
+    // Get SOL price to convert to USD
+    const solPrice = await getSolPrice();
+    const priceInUsd = Number(currentPrice) * solPrice;
     //const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)).data;
 
     tokenData = {
@@ -35,6 +46,8 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
         profileImage: changeGateway(metadataResponse.image),
         description: metadataResponse.description,
         socialLinks: metadataResponse.attributes.socialLinks,
+        price: priceInUsd,
+        priceInSol: currentPrice,
         taxInfo: {
             total: taxInfoResponse.fee_rate,
             burn: taxInfoResponse.burn_rate,

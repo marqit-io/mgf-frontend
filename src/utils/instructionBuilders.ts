@@ -596,6 +596,7 @@ export async function buildSellInstruction(
     slippage: number,
     amount: BN
 ) {
+    debugger;
     const raydium = await initializeRaydium();
     let poolInfo: ApiV3PoolInfoConcentratedItem;
     let clmmPoolInfo: ComputeClmmPoolInfo;
@@ -626,6 +627,7 @@ export async function buildSellInstruction(
         throw new Error('input mint does not match pool')
 
     const baseIn = inputMint.toBase58() === poolInfo.mintA.address;
+    console.log(poolId.toBase58());
 
     const { minAmountOut, remainingAccounts, executionPriceX64, realAmountIn } = PoolUtils.computeAmountOutFormat({
         poolInfo: clmmPoolInfo,
