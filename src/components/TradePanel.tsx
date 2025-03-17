@@ -30,6 +30,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
   const [estimatedOutput, setEstimatedOutput] = useState<number | null>(null);
   const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
   const [success, setSuccess] = useState<{ message: string; signature: string } | null>(null);
+  const [tokenPriceInSol, setTokenPriceInSol] = useState(0);
   const [tokenPrice, setTokenPrice] = useState(0);
 
   useEffect(() => {
@@ -85,6 +86,8 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
           6, // Token decimals (usually 6 for custom tokens)
           9  // WSOL decimals
         );
+
+        setTokenPriceInSol(Number(currentPrice));
 
         // Get SOL price to convert to USD
         const solPrice = await getSolPrice();
@@ -156,6 +159,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
           poolId,
           WSOLMint, // Input mint (SOL)
           tokenMintAddress, // Output mint (Token)
+          Number(slippage),
           inputAmount
         );
         tx.add(buyIx);
@@ -183,6 +187,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
           poolId,
           tokenMintAddress, // Input mint (Token)
           WSOLMint, // Output mint (SOL)
+          Number(slippage),
           inputAmount
         );
         tx.add(sellIx);
@@ -233,17 +238,12 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId }: TradePanel
       }
 
       try {
-        const inputMint = tradeType === 'buy' ? WSOLMint : tokenMintAddress;
-        const outputMint = tradeType === 'buy' ? tokenMintAddress : WSOLMint;
-
-        // Convert to smallest unit
-        const rawAmount = new BN(Math.floor(inputAmount * 1e9));
 
         // Here you would calculate the expected output based on Raydium pool state
         // This is a simplified example - you'll need to implement proper price impact calculation
         const outAmount = tradeType === 'buy'
-          ? inputAmount / tokenPrice
-          : inputAmount * tokenPrice;
+          ? inputAmount / tokenPriceInSol
+          : inputAmount * tokenPriceInSol;
 
         setEstimatedOutput(outAmount);
       } catch (error) {

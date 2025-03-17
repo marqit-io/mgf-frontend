@@ -45,8 +45,8 @@ export const MgfMatrix = {
         },
         {
           "name": "platformCranker",
-          "address": "crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1",
-          "writable": true
+          "writable": true,
+          "address": "crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1"
         },
         {
           "name": "poolState",
@@ -910,8 +910,8 @@ export const MgfMatrix = {
         },
         {
           "name": "platformCranker",
-          "address": "crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1",
-          "writable": true
+          "writable": true,
+          "address": "crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1"
         },
         {
           "name": "poolState",

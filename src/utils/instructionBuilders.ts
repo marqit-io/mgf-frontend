@@ -477,6 +477,7 @@ export async function buildBuyInstruction(
     poolId: PublicKey,
     inputMint: PublicKey,
     outputMint: PublicKey,
+    slippage: number,
     amount: BN
 ) {
     const raydium = await initializeRaydium();
@@ -515,7 +516,7 @@ export async function buildBuyInstruction(
         tickArrayCache: tickCache[poolId.toBase58()],
         amountIn: amount,
         tokenOut: poolInfo[baseIn ? 'mintB' : 'mintA'],
-        slippage: 5,
+        slippage: slippage,
         epochInfo: await raydium.fetchEpochInfo(),
         catchLiquidityInsufficient: true
     });
@@ -592,6 +593,7 @@ export async function buildSellInstruction(
     poolId: PublicKey,
     inputMint: PublicKey,
     outputMint: PublicKey,
+    slippage: number,
     amount: BN
 ) {
     const raydium = await initializeRaydium();
@@ -630,7 +632,7 @@ export async function buildSellInstruction(
         tickArrayCache: tickCache[poolId.toBase58()],
         amountIn: amount,
         tokenOut: poolInfo[baseIn ? 'mintB' : 'mintA'],
-        slippage: 2,
+        slippage: slippage,
         epochInfo: await raydium.fetchEpochInfo(),
         catchLiquidityInsufficient: true
     });
