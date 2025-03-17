@@ -4,7 +4,7 @@ import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Tim
 import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
 import { PublicKey } from '@solana/web3.js';
-import { getTokenDataFromMintAddress, getTokenTopHolders } from '../utils/getData';
+import { getSolPrice, getTokenDataFromMintAddress, getTokenTopHolders } from '../utils/getData';
 import { subscribeToTokenTrades, fetchRecentTrades } from '../utils/trades';
 
 interface Transaction {
@@ -75,6 +75,7 @@ function TokenProfilePage() {
   const [activeTab, setActiveTab] = useState<'transactions' | 'holders'>('transactions');
   const [tokenData, setTokenData] = useState<any>(location.state?.initialTokenData || null);
   const [holders, setHolders] = useState<Holder[]>([]);
+  const [solPrice, setSolPrice] = useState(0);
   // Add loading state
   const [isLoading, setIsLoading] = useState(true);
 
@@ -108,6 +109,14 @@ function TokenProfilePage() {
   const getSolscanTokenHoldersUrl = (address: string) => {
     return `https://solscan.io/token/${address}#holders`;
   };
+
+  useEffect(() => {
+    getSolPrice().then(price => {
+      setSolPrice(price);
+    }).catch(() => {
+      setSolPrice(125);
+    })
+  }, [])
 
   useEffect(() => {
     if (!tokenId) {
@@ -612,8 +621,8 @@ function TokenProfilePage() {
                         </div>
                       )}
                     </td>
-                    <td className="py-4">{formatCurrency(tx.amountUsd)}</td>
-                    <td className="py-4">{formatSolAmount(tx.amountSol)}</td>
+                    <td className="py-4">{formatCurrency(tx.amountUsd * tokenData.price)}</td>
+                    <td className="py-4">{formatSolAmount(tx.amountSol * tokenData.price / solPrice)}</td>
                     <td className="py-4">{formatTxHash(tx.txHash)}</td>
                   </tr>
                 ))}

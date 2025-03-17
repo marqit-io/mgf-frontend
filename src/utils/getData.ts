@@ -198,7 +198,6 @@ export const getTopGlitchTokens = async () => {
                 const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${item.mint}`)).data;
                 const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${item.mint}`)).data;
                 const raydium = await initializeRaydium();
-                debugger;
                 const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
                 const currentPrice = SqrtPriceMath.sqrtPriceX64ToPrice(
                     computePoolInfo.sqrtPriceX64,

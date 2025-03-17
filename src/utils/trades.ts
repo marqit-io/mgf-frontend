@@ -108,7 +108,6 @@ export async function fetchRecentTrades(tokenMintAddress: string): Promise<Trade
         if (!tx) return null;
         return parseTokenTransaction(tx, tokenMintAddress);
     }));
-    console.log(recentTrades);
     return recentTrades.filter(trade => trade !== null);
 }
 
