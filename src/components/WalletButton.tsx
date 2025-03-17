@@ -1,17 +1,10 @@
 import { Wallet } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { useEffect } from 'react';
 
 export function WalletButton() {
-  const { connected, connecting, disconnecting, publicKey, wallet, disconnect } = useWallet();
+  const { connected, connecting, disconnecting, publicKey, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
-
-  useEffect(() => {
-    if (wallet?.adapter.name !== 'Phantom' && connected) {
-      disconnect();
-    }
-  }, [wallet, connected, disconnect]);
 
   const handleClick = async () => {
     if (!connected) {
@@ -36,10 +29,10 @@ export function WalletButton() {
       <Wallet size={16} className={connecting ? 'animate-pulse' : ''} />
       {connecting ? (
         'Connecting...'
-      ) : connected && wallet?.adapter.name === 'Phantom' ? (
+      ) : connected ? (
         `${publicKey?.toString().slice(0, 4)}...${publicKey?.toString().slice(-4)}`
       ) : (
-        'Connect Phantom'
+        'Connect Wallet'
       )}
     </button>
   );
