@@ -35,7 +35,7 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
     // Get SOL price to convert to USD
     const solPrice = await getSolPrice();
     const priceInUsd = Number(currentPrice) * solPrice;
-    //const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)).data;
+    const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)).data;
 
     tokenData = {
         name: tokenInfoResponse.name,
@@ -60,7 +60,7 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
                 address: 'So11111111111111111111111111111111111111112'
             }
         },
-        //glitchInfo: glitchInfo.distributed_value + glitchInfo.burned_value
+        glitchInfo: glitchInfo.distributed_value + glitchInfo.burned_value
     }
     return tokenData;
 }
@@ -185,8 +185,6 @@ export const getTokenBalance = async (publicKey: PublicKey, tokenMintAddress: Pu
 };
 
 export const getTopGlitchTokens = async () => {
-    axios.defaults.headers.common['token'] = import.meta.env.VITE_SOLSCAN_API_KEY;
-
     try {
         // Fetch all tokens in one call
         const topTokens = (await axios.get(`https://api.moneyglitch.fun/v1/stats/top/total?limit=5`)).data;
@@ -195,48 +193,104 @@ export const getTopGlitchTokens = async () => {
         // Fetch data for all tokens in parallel
         const tokensData = await Promise.all(
             topTokens.map(async (item: any) => {
-                let tokenMetadata = null;
-                let feeData = null;
 
-                try {
-                    tokenMetadata = (await axios.get(`https://pro-api.solscan.io/v2.0/token/meta/?address=${item.mint}`)).data.data;
-                } catch (error) {
-                    console.error(`Error fetching token metadata for ${item.mint}:`, error);
-                }
-
-                try {
-                    feeData = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${item.mint}`)).data;
-                } catch (error) {
-                    console.error(`Error fetching fee data for ${item.mint}:`, error);
-                }
+                const tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${item.mint}`)).data;
+                const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${item.mint}`)).data;
+                const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${item.mint}`)).data;
+                const raydium = await initializeRaydium();
+                debugger;
+                const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
+                const currentPrice = SqrtPriceMath.sqrtPriceX64ToPrice(
+                    computePoolInfo.sqrtPriceX64,
+                    6, // Token decimals (usually 6 for custom tokens)
+                    9  // WSOL decimals
+                );
+                // Get SOL price to convert to USD
+                const solPrice = await getSolPrice();
+                const priceInUsd = Number(currentPrice) * solPrice;
+                const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${item.mint}`)).data;
 
                 return {
                     id: item.mint,
-                    name: tokenMetadata?.name || tokenMetadata?.metadata?.name || item.token_name,
-                    price: tokenMetadata?.price || 0,
-                    priceChange: tokenMetadata.price_change_24h,
-                    marketCap: tokenMetadata?.market_cap || 0,
-                    volume24h: tokenMetadata?.volume_24h || 0,
-                    glitchesDistributed: item.total_value_burned + item.total_value_distributed,
-                    glitchType: feeData?.fee_type || 'NoFee',
+                    name: tokenInfoResponse.name,
+                    price: priceInUsd || 0,
+                    priceChange: 0,
+                    marketCap: 0,
+                    volume24h: 0,
+                    glitchesDistributed: glitchInfo.total_value_burned + glitchInfo.total_value_distributed,
+                    glitchType: taxInfoResponse?.fee_type || 'NoFee',
                     tax: {
-                        enabled: feeData?.fee_type !== 'NoFee',
-                        total: feeData?.fee_rate || 0,
+                        enabled: taxInfoResponse?.fee_type !== 'NoFee',
+                        total: taxInfoResponse?.fee_rate || 0,
                         distribution: {
-                            burn: feeData?.burn_rate || 0,
-                            reward: feeData?.distribution_rate || 0
+                            burn: taxInfoResponse?.burn_rate || 0,
+                            reward: taxInfoResponse?.distribution_rate || 0
                         }
                     }
                 };
             })
         );
-
+        console.log(tokensData);
         return tokensData;
     } catch (error) {
         console.error('Error fetching top tokens:', error);
         return [];
     }
 };
+
+// export const getTopGlitchTokens = async () => {
+//     axios.defaults.headers.common['token'] = import.meta.env.VITE_SOLSCAN_API_KEY;
+
+//     try {
+//         // Fetch all tokens in one call
+//         const topTokens = (await axios.get(`https://api.moneyglitch.fun/v1/stats/top/total?limit=5`)).data;
+//         if (!topTokens?.length) return [];
+
+//         // Fetch data for all tokens in parallel
+//         const tokensData = await Promise.all(
+//             topTokens.map(async (item: any) => {
+//                 let tokenMetadata = null;
+//                 let feeData = null;
+
+//                 try {
+//                     tokenMetadata = (await axios.get(`https://pro-api.solscan.io/v2.0/token/meta/?address=${item.mint}`)).data.data;
+//                 } catch (error) {
+//                     console.error(`Error fetching token metadata for ${item.mint}:`, error);
+//                 }
+
+//                 try {
+//                     feeData = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${item.mint}`)).data;
+//                 } catch (error) {
+//                     console.error(`Error fetching fee data for ${item.mint}:`, error);
+//                 }
+
+//                 return {
+//                     id: item.mint,
+//                     name: tokenMetadata?.name || tokenMetadata?.metadata?.name || item.token_name,
+//                     price: tokenMetadata?.price || 0,
+//                     priceChange: tokenMetadata.price_change_24h,
+//                     marketCap: tokenMetadata?.market_cap || 0,
+//                     volume24h: tokenMetadata?.volume_24h || 0,
+//                     glitchesDistributed: item.total_value_burned + item.total_value_distributed,
+//                     glitchType: feeData?.fee_type || 'NoFee',
+//                     tax: {
+//                         enabled: feeData?.fee_type !== 'NoFee',
+//                         total: feeData?.fee_rate || 0,
+//                         distribution: {
+//                             burn: feeData?.burn_rate || 0,
+//                             reward: feeData?.distribution_rate || 0
+//                         }
+//                     }
+//                 };
+//             })
+//         );
+
+//         return tokensData;
+//     } catch (error) {
+//         console.error('Error fetching top tokens:', error);
+//         return [];
+//     }
+// };
 
 export const getTotalStats = async () => {
     const response = (await axios.get(`https://api.moneyglitch.fun/v1/stats/platform`)).data;

@@ -509,13 +509,11 @@ export async function buildBuyInstruction(
     if (inputMint.toBase58() !== poolInfo.mintB.address)
         throw new Error('input mint does not match pool')
 
-    const baseIn = inputMint.toBase58() === poolInfo.mintA.address;
-
     const { minAmountOut, remainingAccounts, executionPriceX64, realAmountIn } = PoolUtils.computeAmountOutFormat({
         poolInfo: clmmPoolInfo,
         tickArrayCache: tickCache[poolId.toBase58()],
         amountIn: amount,
-        tokenOut: poolInfo[baseIn ? 'mintB' : 'mintA'],
+        tokenOut: poolInfo['mintA'],
         slippage: slippage,
         epochInfo: await raydium.fetchEpochInfo(),
         catchLiquidityInsufficient: true
@@ -563,7 +561,7 @@ export async function buildBuyInstruction(
 
     return mgfProgram.methods
         .buy(
-            new BN(minAmountOut.amount.raw.abs().toString()),
+            minAmountOut.amount.raw.abs(),
             realAmountIn.amount.raw,
             executionPriceX64
         )
@@ -627,14 +625,11 @@ export async function buildSellInstruction(
     if (inputMint.toBase58() !== poolInfo.mintA.address)
         throw new Error('input mint does not match pool')
 
-    const baseIn = inputMint.toBase58() === poolInfo.mintA.address;
-    console.log(poolId.toBase58());
-
-    const { minAmountOut, remainingAccounts, executionPriceX64, realAmountIn } = PoolUtils.computeAmountOutFormat({
+    const { minAmountOut, remainingAccounts, realAmountIn } = PoolUtils.computeAmountOutFormat({
         poolInfo: clmmPoolInfo,
         tickArrayCache: tickCache[poolId.toBase58()],
         amountIn: amount,
-        tokenOut: poolInfo[baseIn ? 'mintB' : 'mintA'],
+        tokenOut: poolInfo['mintB'],
         slippage: slippage,
         epochInfo: await raydium.fetchEpochInfo(),
         catchLiquidityInsufficient: true
@@ -684,8 +679,8 @@ export async function buildSellInstruction(
     return mgfProgram.methods
         .sell(
             realAmountIn.amount.raw,
-            new BN(minAmountOut.amount.raw.abs().toString()),
-            executionPriceX64
+            minAmountOut.amount.raw.abs(),
+            new BN(0)
         )
         .accounts({
             payer: payer,

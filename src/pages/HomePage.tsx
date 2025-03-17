@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown, LineChart, Sparkles, Zap, Timer, Flame, Gift, ChevronDown, ChevronUp, ArrowUpRight, Twitter, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, LineChart, Sparkles, Zap, Timer, Flame, Gift, ChevronDown, ChevronUp, ArrowUpRight, Twitter } from 'lucide-react';
 import { getTopGlitchTokens, getTotalStats } from '../utils/getData';
 import { MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
-
-const TOS_STORAGE_KEY = 'mgf_tos_agreed';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -17,7 +15,6 @@ function HomePage() {
   const [totalStats, setTotalStats] = useState<any>(null);
   const [totalStatsLoading, setTotalStatsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [showTosModal, setShowTosModal] = useState(false);
 
   const timeframes = [
     { value: '24h', label: '24HR', icon: LineChart },
@@ -74,13 +71,6 @@ function HomePage() {
     });
 
     return unSubscribe;
-  }, []);
-
-  useEffect(() => {
-    const tosStatus = localStorage.getItem(TOS_STORAGE_KEY);
-    if (!tosStatus) {
-      setShowTosModal(true);
-    }
   }, []);
 
   const getActionColor = (token: typeof tokens[0]) => {

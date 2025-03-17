@@ -1,6 +1,7 @@
 import { Connection, PublicKey, VersionedTransactionResponse } from "@solana/web3.js";
 import { getTokenMetadata } from "@solana/spl-token"
 import { MgfMatrix as IDL } from "./idl";
+import { changeGateway } from "./getData";
 
 
 export type MintInfo = {
@@ -35,16 +36,17 @@ export function subscribeToTokenMints(
             if (lastProcessedSignature === signature) return;
             lastProcessedSignature = signature;
 
-            const isUpdateTransferFee = logsInfo.logs.find(item => item.includes("UpdateTransferFee"));
-            if (!isUpdateTransferFee) return;
-
+            const isMintToken = logsInfo.logs.find(item => item.includes("MintToken"));
+            if (!isMintToken) return;
+            console.log("Here!");
+            debugger;
             try {
                 const tx = await connection.getTransaction(signature, {
                     maxSupportedTransactionVersion: 0
                 });
 
                 if (tx) {
-                    const mintInfo = await parseUpdateFeeTransaction(tx);
+                    const mintInfo = await parseMintTokenTransaction(tx);
                     if (mintInfo) {
                         onMint(mintInfo);
                     }
@@ -61,9 +63,9 @@ export function subscribeToTokenMints(
     };
 }
 
-const parseUpdateFeeTransaction = async (tx: VersionedTransactionResponse) => {
+const parseMintTokenTransaction = async (tx: VersionedTransactionResponse) => {
     // Get the discriminator for updateTransferFee instruction
-    const discriminator = IDL.instructions.find(ix => ix.name === "updateTransferFee")?.discriminator;
+    const discriminator = IDL.instructions.find(ix => ix.name === "mintToken")?.discriminator;
     if (!discriminator) return null;
 
     // Convert discriminator to Uint8Array for comparison
@@ -94,9 +96,19 @@ const parseUpdateFeeTransaction = async (tx: VersionedTransactionResponse) => {
     const dataView = new DataView(instruction.data.buffer);
 
     // Read values at their respective offsets
-    const transferFeeBps = dataView.getInt16(8, true);  // true for little-endian
-    const distributeFeeBps = dataView.getInt16(10, true);
-    const burnFeeBps = dataView.getInt16(12, true);
+    let offset = 8;
+    const uriLen = dataView.getUint32(offset, true);
+    offset += 4 + uriLen;
+    const symbolLen = dataView.getUint32(offset, true);
+    offset += 4 + symbolLen;
+    const nameLen = dataView.getUint32(offset, true);
+    offset += 4 + nameLen;
+    offset += 1;
+    const transferFeeBps = dataView.getInt16(offset, true);  // true for little-endian
+    offset += 2;
+    const distributeFeeBps = dataView.getInt16(offset, true);
+    offset += 2;
+    const burnFeeBps = dataView.getInt16(offset, true);
 
     const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT, 'confirmed');
 
@@ -105,9 +117,9 @@ const parseUpdateFeeTransaction = async (tx: VersionedTransactionResponse) => {
     let imageUrl = "";
     if (tokenMetadata?.uri) {
         try {
-            const response = await fetch(tokenMetadata.uri);
+            const response = await fetch(changeGateway(tokenMetadata.uri));
             const metadata = await response.json();
-            imageUrl = metadata.image || ""; // Most NFT metadata standards use 'image' field
+            imageUrl = changeGateway(metadata.image) || ""; // Most NFT metadata standards use 'image' field
         } catch (error) {
             console.error('Error fetching metadata:', error);
         }
