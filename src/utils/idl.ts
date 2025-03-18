@@ -368,7 +368,8 @@ export const MgfMatrix = {
           "writable": true
         },
         {
-          "name": "vault0Mint"
+          "name": "vault0Mint",
+          "writable": true
         },
         {
           "name": "vault1Mint",

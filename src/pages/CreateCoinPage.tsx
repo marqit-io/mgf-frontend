@@ -12,13 +12,11 @@ import {
   ComputeBudgetProgram,
   SystemProgram
 } from '@solana/web3.js';
-import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2"
 import bs58 from 'bs58';
 import axios from 'axios';
 import { calculateLaunchParameters, SOL_PARAMS } from '../utils/poolConfig';
 import { BN } from '@coral-xyz/anchor';
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { getSolPrice } from "../utils/getData";
 interface TokenDistribution {
   address: string;
   name: string;
@@ -308,7 +306,7 @@ function CreateCoinPage() {
         distributionInterval: formData.glitchInterval
       };
 
-      const poolParams = calculateLaunchParameters(SOL_PARAMS, mintKeypair.publicKey, formData.transferTax, new BN(Number(maxSol) * 10 ** 9));
+      const poolParams = calculateLaunchParameters(SOL_PARAMS, mintKeypair.publicKey, new BN(Number(maxSol) * 10 ** 9));
 
       const isDevnet = import.meta.env.VITE_CLUSTER === 'devnet';
       const solMint = new PublicKey("So11111111111111111111111111111111111111112");

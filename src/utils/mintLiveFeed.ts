@@ -3,7 +3,6 @@ import { getTokenMetadata } from "@solana/spl-token"
 import { MgfMatrix as IDL } from "./idl";
 import { changeGateway } from "./getData";
 
-
 export type MintInfo = {
     mintAddress: string;
     name: string | undefined;

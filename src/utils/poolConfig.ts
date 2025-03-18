@@ -31,13 +31,11 @@ export const USDC_PARAMS: MarketParams = {
 export function calculateLaunchParameters(
     market: MarketParams,
     baseMint: PublicKey,
-    baseMintTransferFeeBPS: number,
     minterQuoteTokenAmount?: BN,
 ): CreatePositionParams {
 
     const { quoteTokenDecimals, baseTokenDecimals, tickSpacing, startPrice, endPrice, baseSupply } = market;
-    const transferFee = baseSupply.mul(new BN(baseMintTransferFeeBPS)).div(new BN(10000));
-    const poolBaseTokenAmount = baseSupply.sub(transferFee);
+    const poolBaseTokenAmount = baseSupply;
     const initialTick = TickMath.getTickWithPriceAndTickspacing(startPrice, tickSpacing, baseTokenDecimals, quoteTokenDecimals);
     const initialSqrtPriceX64 = SqrtPriceMath.getSqrtPriceX64FromTick(initialTick);
     const actualPrice = SqrtPriceMath.sqrtPriceX64ToPrice(initialSqrtPriceX64, baseTokenDecimals, quoteTokenDecimals);
