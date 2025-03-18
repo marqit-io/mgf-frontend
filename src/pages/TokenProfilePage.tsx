@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Timer, ArrowUpRight, ArrowDownRight, Copy, Check, Sparkles, Globe, X, MessageCircle, ExternalLink } from 'lucide-react';
+import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Timer, ArrowUpRight, ArrowDownRight, Copy, Check, Sparkles, Globe, X, MessageCircle, ExternalLink, Calculator } from 'lucide-react';
 import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
 import { PublicKey } from '@solana/web3.js';
-import { getTokenDataFromMintAddress, getTokenTopHolders } from '../utils/getData';
+import { getTokenDataFromMintAddress, getTokenTopHolders, getTokenBalance } from '../utils/getData';
 import { subscribeToTokenTrades, fetchRecentTrades, getTokenPrice } from '../utils/trades';
-
+import { PnlCalculatorModal } from '../components/PnlCalculatorModal';
+import { RewardsCalculator } from '../components/RewardsCalculator';
+import { useWallet } from '@solana/wallet-adapter-react';
 interface Transaction {
   id: string;
   timestamp: string;
@@ -77,8 +79,11 @@ function TokenProfilePage() {
   const [holders, setHolders] = useState<Holder[]>([]);
   const [price, setPrice] = useState<number>(0);
   const [priceInSol, setPriceInSol] = useState<number>(0);
+  const { publicKey, connected } = useWallet();
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   // Add loading state
   const [isLoading, setIsLoading] = useState(true);
+  const [isPnlModalOpen, setIsPnlModalOpen] = useState(false);
 
   const handleCopyAddress = async () => {
     try {
@@ -110,6 +115,14 @@ function TokenProfilePage() {
   const getSolscanTokenHoldersUrl = (address: string) => {
     return `https://solscan.io/token/${address}#holders`;
   };
+
+  useEffect(() => {
+    if (connected && publicKey && tokenAddress) {
+      getTokenBalance(publicKey, tokenAddress).then(balance => {
+        setWalletBalance(balance);
+      });
+    }
+  }, [connected, publicKey, tokenAddress]);
 
   useEffect(() => {
     if (!tokenId) {
@@ -367,6 +380,12 @@ function TokenProfilePage() {
                         {tokenData?.socialLinks?.telegram && <a href={tokenData?.socialLinks?.telegram} target="_blank" rel="noopener noreferrer" className="terminal-button p-1.5">
                           <MessageCircle size={14} />
                         </a>}
+                        <button
+                          onClick={() => setIsPnlModalOpen(true)}
+                          className="terminal-button p-1.5 hover:bg-[#00ff00]/10"
+                        >
+                          <Calculator size={14} />
+                        </button>
                       </>
                     ) : (
                       <div className="flex gap-2">
@@ -572,6 +591,21 @@ function TokenProfilePage() {
         </div>
       </div>
 
+      {/* Rewards Calculator Section */}
+      {tokenData.taxInfo.distribute !== 0 && (
+        <div className="mb-4">
+          <RewardsCalculator
+            distributionFee={Number(tokenData.taxInfo.distribute)}
+            volume24h={tokenData.volume24h || 100000}
+            totalSupply={tokenData.totalSupply || 1000000000}
+            userTokenBalance={walletBalance}
+            userTokenSymbol={tokenData.ticker}
+            distributionTokenSymbol={tokenData.taxInfo.distributionToken.symbol || 'Distribution Token'}
+            distributionTokenPrice={125}
+          />
+        </div>
+      )}
+
       {/* Holders and Transactions Section */}
       <div className="terminal-card p-4 sm:p-6 mb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -714,6 +748,14 @@ function TokenProfilePage() {
       <div className="mt-4">
         <CommentSection tokenId={tokenId || ''} />
       </div> */}
+
+      <PnlCalculatorModal
+        isOpen={isPnlModalOpen}
+        onClose={() => setIsPnlModalOpen(false)}
+        tokenSymbol={tokenData?.ticker}
+        tokenAddress={tokenAddress?.toString() || ''}
+        currentPrice={price}
+      />
     </div >
   );
 }

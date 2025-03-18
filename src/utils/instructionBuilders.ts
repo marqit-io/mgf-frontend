@@ -4,6 +4,7 @@ import { BN, Idl, Program } from "@coral-xyz/anchor";
 import { TickUtils, Raydium, ApiV3PoolInfoConcentratedItem, ClmmKeys, WSOLMint, ComputeClmmPoolInfo, ReturnTypeFetchMultiplePoolTickArrays, CLMM_PROGRAM_ID as MAINNET_CLMM_PROGRAM_ID, DEVNET_PROGRAM_ID, PoolUtils } from "@raydium-io/raydium-sdk-v2";
 import { DepositPositionParams, MetadataParams, TokenFeeParams } from "../types/instruction";
 import { MgfMatrix as IDL } from "./idl";
+import RaydiumService from './raydium';
 
 const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
 const mgfProgram = new Program(IDL as Idl, { connection });
@@ -31,13 +32,7 @@ const lockedPositionSeed = "locked_position";
 
 // Initialize Raydium
 export async function initializeRaydium() {
-    if (!raydium) {
-        raydium = await Raydium.load({
-            connection,
-            cluster: import.meta.env.VITE_CLUSTER
-        });
-    }
-    return raydium;
+    return RaydiumService.getInstance();
 }
 
 export async function buildMintTokenInstruction(
