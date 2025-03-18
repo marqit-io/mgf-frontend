@@ -433,6 +433,7 @@ function TokenProfilePage() {
                 poolId={new PublicKey(tokenData?.poolAddress)}
                 tokenPrice={price}
                 tokenPriceInSol={priceInSol}
+                tokenTax={tokenData.taxInfo.total}
               />
             ) : (
               <div className="w-full h-full bg-white/10 animate-pulse" />

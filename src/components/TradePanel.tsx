@@ -16,9 +16,10 @@ interface TradePanelProps {
   tokenMintAddress: PublicKey;
   tokenPriceInSol: number;
   tokenPrice: number;
+  tokenTax: number;
 }
 
-export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceInSol, tokenPrice }: TradePanelProps) {
+export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceInSol, tokenPrice, tokenTax }: TradePanelProps) {
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('1');
@@ -165,15 +166,23 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       console.log(signedTx.serialize().toString('base64'));
       const signature = await connection.sendRawTransaction(signedTx.serialize());
 
-      const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+      const latestBlockHash = await connection.getLatestBlockhash();
+      const confirmation = await connection.confirmTransaction({
+        signature,
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight
+      }, 'finalized');
 
       if (confirmation.value.err) {
         throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
       }
 
-      // Clear form and update balances
+      // Clear form
       setAmount('');
       setEstimatedOutput(null);
+
+      // Wait for balances to update on-chain
+      await new Promise(resolve => setTimeout(resolve, 2000));
       await updateBalances();
 
       // Set success message
@@ -203,8 +212,8 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
         // Here you would calculate the expected output based on Raydium pool state
         // This is a simplified example - you'll need to implement proper price impact calculation
         const outAmount = tradeType === 'buy'
-          ? inputAmount / tokenPriceInSol
-          : inputAmount * tokenPriceInSol;
+          ? inputAmount / tokenPriceInSol * (10000 - tokenTax) / 10000
+          : inputAmount * tokenPriceInSol * (10000 - tokenTax) / 10000;
 
         setEstimatedOutput(outAmount);
       } catch (error) {
