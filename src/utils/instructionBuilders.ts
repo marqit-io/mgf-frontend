@@ -595,7 +595,6 @@ export async function buildSellInstruction(
     slippage: number,
     amount: BN
 ) {
-    debugger;
     const raydium = await initializeRaydium();
     let poolInfo: ApiV3PoolInfoConcentratedItem;
     let clmmPoolInfo: ComputeClmmPoolInfo;

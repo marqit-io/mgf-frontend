@@ -99,7 +99,7 @@ function parseTokenTransaction(
 
 export async function fetchRecentTrades(tokenMintAddress: string): Promise<TradeInfo[]> {
     const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
-    const signatures = await connection.getSignaturesForAddress(new PublicKey(tokenMintAddress), { limit: 30 }, "confirmed");
+    const signatures = await connection.getSignaturesForAddress(new PublicKey(tokenMintAddress), { limit: 10 }, "confirmed");
     const recentTrades = await Promise.all(signatures.map(async (signature) => {
         const tx = await connection.getTransaction(signature.signature, { maxSupportedTransactionVersion: 0 });
         if (!tx) return null;

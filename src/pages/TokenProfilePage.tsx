@@ -434,6 +434,7 @@ function TokenProfilePage() {
                 tokenPrice={price}
                 tokenPriceInSol={priceInSol}
                 tokenTax={tokenData.taxInfo.total}
+                distributionTokenMintAddress={new PublicKey(tokenData.taxInfo.distributionToken?.address)}
               />
             ) : (
               <div className="w-full h-full bg-white/10 animate-pulse" />

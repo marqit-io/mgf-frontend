@@ -3,6 +3,7 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_
 import axios from 'axios';
 import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2"
 import { initializeRaydium } from './instructionBuilders';
+import { Metadata } from '@metaplex-foundation/mpl-token-metadata';
 
 interface Holder {
     address: string;
@@ -26,6 +27,8 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
     const metadataResponse = (await axios.get(changeGateway(tokenInfoResponse.uri))).data;
     const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`)).data;
     const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)).data;
+    const distributionTokenMetadata = await getTokenMetadata(new Connection(import.meta.env.VITE_RPC_ENDPOINT), new PublicKey(taxInfoResponse.distribution_mint));
+    if (distributionTokenMetadata == null) throw new Error("Distribution token metadata not found");
 
     tokenData = {
         name: tokenInfoResponse.name,
@@ -43,9 +46,9 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
             distribute: taxInfoResponse.distribution_rate,
             interval: taxInfoResponse.distribution_interval,
             distributionToken: {
-                symbol: 'SOL',
-                name: 'Wrapped SOL',
-                address: 'So11111111111111111111111111111111111111112'
+                symbol: distributionTokenMetadata?.data?.symbol.replace(/\0/g, '').trim(),
+                name: distributionTokenMetadata?.data?.name.replace(/\0/g, '').trim(),
+                address: taxInfoResponse.distribution_mint
             }
         },
         glitchInfo: glitchInfo.distributed_value + glitchInfo.burned_value
@@ -283,3 +286,27 @@ export const getTotalStats = async () => {
     const response = (await axios.get(`https://api.moneyglitch.fun/v1/stats/platform`)).data;
     return response;
 };
+
+export async function getTokenMetadata(connection: Connection, mint: PublicKey) {
+    try {
+        const [metadataAddress] = PublicKey.findProgramAddressSync(
+            [
+                Buffer.from('metadata'),
+                new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s').toBuffer(),
+                mint.toBuffer(),
+            ],
+            new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s')
+        );
+
+        const metadataAccount = await connection.getAccountInfo(metadataAddress);
+        if (!metadataAccount) {
+            throw new Error('Metadata account not found');
+        }
+
+        const metadata = Metadata.deserialize(metadataAccount.data)[0];
+        return metadata;
+    } catch (error) {
+        console.error('Error fetching token metadata:', error);
+        return null;
+    }
+}

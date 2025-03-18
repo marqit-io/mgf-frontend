@@ -17,9 +17,10 @@ interface TradePanelProps {
   tokenPriceInSol: number;
   tokenPrice: number;
   tokenTax: number;
+  distributionTokenMintAddress: PublicKey;
 }
 
-export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceInSol, tokenPrice, tokenTax }: TradePanelProps) {
+export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceInSol, tokenPrice, tokenTax, distributionTokenMintAddress }: TradePanelProps) {
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('1');
@@ -82,34 +83,30 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       setSuccess(null);
       validateTrade();
 
-      // Create transaction
       const tx = new Transaction();
 
-      // Get the associated token account address
-      const tokenAccount = getAssociatedTokenAddressSync(
-        tokenMintAddress,
-        publicKey
-      );
-      const wsolAccount = getAssociatedTokenAddressSync(
-        WSOLMint,
-        publicKey
-      );
+      // Only try to create distribution token account if it exists
+      if (distributionTokenMintAddress) {
+        const distributionTokenAccount = getAssociatedTokenAddressSync(
+          distributionTokenMintAddress,
+          publicKey
+        );
 
-      if (tradeType === 'buy') {
-        const inputAmount = new BN(Math.floor(parseFloat(amount) * 1e9)); // Convert to lamports
-        // Check if token account exists and create if needed
         try {
-          await connection.getAccountInfo(tokenAccount);
+          await connection.getAccountInfo(distributionTokenAccount);
         } catch (e) {
           const createTokenAccountIx = createAssociatedTokenAccountInstruction(
-            publicKey, // payer
-            tokenAccount, // ata
-            publicKey, // owner
-            tokenMintAddress // mint
+            publicKey,
+            distributionTokenAccount,
+            publicKey,
+            distributionTokenMintAddress
           );
           tx.add(createTokenAccountIx);
         }
+      }
 
+      if (tradeType === 'buy') {
+        const inputAmount = new BN(Math.floor(parseFloat(amount) * 1e9)); // Convert to lamports
         // Add wrap SOL instruction if buying
         const wrapSolIx = await buildWrapSolInstruction(publicKey, inputAmount);
         tx.add(wrapSolIx);
@@ -130,18 +127,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
         tx.add(unwrapSolIx);
       } else {
         const inputAmount = new BN(Math.floor(parseFloat(amount) * 1e6)); // Convert to lamports
-        // For selling, we need to ensure WSOL account exists
-        try {
-          await connection.getAccountInfo(wsolAccount);
-        } catch (e) {
-          const createWsolAccountIx = createAssociatedTokenAccountInstruction(
-            publicKey, // payer
-            wsolAccount, // ata
-            publicKey, // owner
-            WSOLMint // mint
-          );
-          tx.add(createWsolAccountIx);
-        }
 
         // Add sell instruction
         const sellIx = await buildSellInstruction(
