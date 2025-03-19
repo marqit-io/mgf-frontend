@@ -23,6 +23,8 @@
     "bn.js": "^5.2.1",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
+    "html-to-image": "^1.11.13",
+    "html-to-png": "^0.0.1",
     "html2canvas": "^1.4.1",
     "jito-ts": "^4.2.0",
     "lightweight-charts": "^4.1.3",

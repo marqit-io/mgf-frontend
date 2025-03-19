@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Download, Copy, X, Zap } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { Download, Copy, X, Zap, Loader2, CheckCircle2 } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { useWallet } from '@solana/wallet-adapter-react';
 
 interface PnlCalculatorModalProps {
@@ -20,6 +20,12 @@ interface PnlData {
     totalRewards: number;
 }
 
+// Add new interface for loading steps
+interface LoadingStep {
+    text: string;
+    status: 'pending' | 'active' | 'completed';
+}
+
 export function PnlCalculatorModal({
     isOpen,
     onClose,
@@ -35,18 +41,63 @@ export function PnlCalculatorModal({
     const [isLoading, setIsLoading] = useState(true);
     const [copySuccess, setCopySuccess] = useState(false);
     const pnlCardRef = useRef<HTMLDivElement>(null);
+    const [loadingSteps, setLoadingSteps] = useState<LoadingStep[]>([
+        { text: 'Connecting to wallet...', status: 'pending' },
+        { text: 'Fetching transaction history...', status: 'pending' },
+        { text: 'Calculating profits...', status: 'pending' }
+    ]);
 
+    // Add reset function
+    const resetCalculator = () => {
+        setIsLoading(true);
+        setPnlData(null);
+        setLoadingSteps(steps => steps.map(step => ({ ...step, status: 'pending' })));
+    };
+
+    // Modify useEffect to handle reopening
     useEffect(() => {
-        if (isOpen && publicKey) {
-            setTimeout(() => {
-                const mockPnlData: PnlData = {
-                    totalBought: 1000,    // Total USD value of tokens bought
-                    totalSold: 600,       // Total USD value of tokens sold
-                    totalRewards: 20      // Total USD value of rewards received
-                };
-                setPnlData(mockPnlData);
-                setIsLoading(false);
-            }, 1000);
+        if (isOpen) {
+            // Reset everything when modal opens
+            resetCalculator();
+
+            if (publicKey) {
+                // Step 1: Wallet connection
+                setLoadingSteps(steps => steps.map((step, index) =>
+                    index === 0 ? { ...step, status: 'active' } : step
+                ));
+
+                setTimeout(() => {
+                    // Step 1 complete, start step 2
+                    setLoadingSteps(steps => steps.map((step, index) =>
+                        index === 0 ? { ...step, status: 'completed' } :
+                            index === 1 ? { ...step, status: 'active' } : step
+                    ));
+
+                    setTimeout(() => {
+                        // Step 2 complete, start step 3
+                        setLoadingSteps(steps => steps.map((step, index) =>
+                            index === 1 ? { ...step, status: 'completed' } :
+                                index === 2 ? { ...step, status: 'active' } : step
+                        ));
+
+                        setTimeout(() => {
+                            // Step 3 complete
+                            setLoadingSteps(steps => steps.map((step, index) =>
+                                index === 2 ? { ...step, status: 'completed' } : step
+                            ));
+
+                            // Mock PNL data loading complete
+                            const mockPnlData: PnlData = {
+                                totalBought: 1000,
+                                totalSold: 600,
+                                totalRewards: 20
+                            };
+                            setPnlData(mockPnlData);
+                            setIsLoading(false);
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
+            }
         }
     }, [isOpen, publicKey]);
 
@@ -61,15 +112,18 @@ export function PnlCalculatorModal({
     const handleCopyImage = async () => {
         if (!pnlCardRef.current) return;
         try {
-            const canvas = await html2canvas(pnlCardRef.current);
-            canvas.toBlob(async (blob) => {
-                if (!blob) return;
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
-                setCopySuccess(true);
-                setTimeout(() => setCopySuccess(false), 2000);
-            });
+            const dataUrl = await toPng(pnlCardRef.current);
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    [blob.type]: blob
+                })
+            ]);
+
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
         } catch (error) {
             console.error('Error copying image:', error);
         }
@@ -78,15 +132,42 @@ export function PnlCalculatorModal({
     const handleDownloadImage = async () => {
         if (!pnlCardRef.current) return;
         try {
-            const canvas = await html2canvas(pnlCardRef.current);
+            const dataUrl = await toPng(pnlCardRef.current);
             const link = document.createElement('a');
             link.download = `${tokenSymbol}-pnl.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.href = dataUrl;
             link.click();
         } catch (error) {
             console.error('Error downloading image:', error);
         }
     };
+
+    // Replace the loading div with this new loading UI
+    const renderLoadingState = () => (
+        <div className="h-[581px] w-[443.219px] flex flex-col items-center justify-center p-6 border-2 border-[#00ff00]/20 rounded-lg bg-black/90">
+            <div className="space-y-6 w-full max-w-sm">
+                {loadingSteps.map((step, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                        {step.status === 'completed' ? (
+                            <CheckCircle2 className="w-5 h-5 text-[#00ff00]" />
+                        ) : step.status === 'active' ? (
+                            <Loader2 className="w-5 h-5 text-[#00ff00] animate-spin" />
+                        ) : (
+                            <div className="w-5 h-5 rounded-full border-2 border-[#00ff00]/50" />
+                        )}
+                        <span className={`
+                            font-mono text-lg
+                            ${step.status === 'completed' ? 'text-[#00ff00]' :
+                                step.status === 'active' ? 'text-[#00ff00] animate-pulse' :
+                                    'text-[#00ff00]/50'}
+                        `}>
+                            {step.text}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 
     if (!isOpen) return null;
 
@@ -100,11 +181,7 @@ export function PnlCalculatorModal({
                     </button>
                 </div>
 
-                {isLoading ? (
-                    <div className="h-64 flex items-center justify-center">
-                        <div className="animate-pulse text-[#00ff00]">Loading PNL data...</div>
-                    </div>
-                ) : (
+                {isLoading ? renderLoadingState() : (
                     <>
                         <div ref={pnlCardRef}
                             className="rounded-lg p-6 relative overflow-hidden bg-black"
