@@ -4,7 +4,7 @@ import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Tim
 import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
 import { PublicKey } from '@solana/web3.js';
-import { getTokenDataFromMintAddress, getTokenTopHolders, getTokenBalance } from '../utils/getData';
+import { getTokenDataFromMintAddress, getTokenTopHolders, getTokenBalance, getSolBalance } from '../utils/getData';
 import { subscribeToTokenTrades, fetchRecentTrades, getTokenPrice } from '../utils/trades';
 import { PnlCalculatorModal } from '../components/PnlCalculatorModal';
 import { RewardsCalculator } from '../components/RewardsCalculator';
@@ -70,6 +70,7 @@ function TokenProfilePage() {
   const { tokenId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { publicKey, connected } = useWallet();
   const [tokenAddress, setTokenAddress] = useState<PublicKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
@@ -79,11 +80,10 @@ function TokenProfilePage() {
   const [holders, setHolders] = useState<Holder[]>([]);
   const [price, setPrice] = useState<number>(0);
   const [priceInSol, setPriceInSol] = useState<number>(0);
-  const { publicKey, connected } = useWallet();
-  const [walletBalance, setWalletBalance] = useState<number>(0);
-  // Add loading state
   const [isLoading, setIsLoading] = useState(true);
   const [isPnlModalOpen, setIsPnlModalOpen] = useState(false);
+  const [solBalance, setSolBalance] = useState<number>(0);
+  const [tokenBalance, setTokenBalance] = useState<number>(0);
 
   const handleCopyAddress = async () => {
     try {
@@ -116,12 +116,31 @@ function TokenProfilePage() {
     return `https://solscan.io/token/${address}#holders`;
   };
 
-  useEffect(() => {
+  const updatePrice = async () => {
+    if (tokenAddress) {
+      try {
+        const { price, priceInSol } = await getTokenPrice(tokenAddress.toString());
+        setPrice(price);
+        setPriceInSol(priceInSol);
+      } catch (error) {
+        console.error('Error fetching token price:', error);
+      }
+    }
+  };
+
+  const updateBalances = async () => {
     if (connected && publicKey && tokenAddress) {
       getTokenBalance(publicKey, tokenAddress).then(balance => {
-        setWalletBalance(balance);
+        setTokenBalance(balance);
+      });
+      getSolBalance(publicKey).then(balance => {
+        setSolBalance(balance);
       });
     }
+  };
+
+  useEffect(() => {
+    updateBalances();
   }, [connected, publicKey, tokenAddress]);
 
   useEffect(() => {
@@ -144,33 +163,28 @@ function TokenProfilePage() {
   useEffect(() => {
     if (tokenAddress) {
       setIsLoading(true); // Set loading to true when starting to fetch
-      // Only fetch data if we don't have initial data
-      if (!location.state?.initialTokenData) {
-        getTokenDataFromMintAddress(tokenAddress)
-          .then(data => {
-            if (data) {  // Add null check here
-              setTokenData(data);
-              return getTokenTopHolders(tokenAddress, data.totalSupply, data.price);
-            }
-            throw new Error('Failed to fetch token data');
-          })
-          .then(holders => {
-            if (holders) {  // Add null check here
-              setHolders(holders);
-            }
-          })
-          .catch(error => {
-            console.error('Error fetching token data:', error);
-            setError('Failed to load token data');
-          })
-          .finally(() => {
-            setIsLoading(false);
-          });
-      } else {
-        setIsLoading(false);
-      }
+      getTokenDataFromMintAddress(tokenAddress)
+        .then(data => {
+          if (data) {  // Add null check here
+            setTokenData(data);
+            return getTokenTopHolders(tokenAddress, data.totalSupply, data.price);
+          }
+          throw new Error('Failed to fetch token data');
+        })
+        .then(holders => {
+          if (holders) {  // Add null check here
+            setHolders(holders);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching token data:', error);
+          setError('Failed to load token data');
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
-  }, [tokenAddress, location.state?.initialTokenData]);
+  }, [tokenAddress]);
 
   useEffect(() => {
     if (tokenAddress) {
@@ -186,7 +200,6 @@ function TokenProfilePage() {
           ]);
         }
       );
-
       return () => {
         unsubscribe();
       };
@@ -196,23 +209,11 @@ function TokenProfilePage() {
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
-    const updatePrice = async () => {
-      if (tokenAddress) {
-        try {
-          const { price, priceInSol } = await getTokenPrice(tokenAddress.toString());
-          setPrice(price);
-          setPriceInSol(priceInSol);
-        } catch (error) {
-          console.error('Error fetching token price:', error);
-        }
-      }
-    };
-
     // Initial price fetch
     updatePrice();
 
     // Set up interval for price updates
-    intervalId = setInterval(updatePrice, 10000); // 10 seconds
+    intervalId = setInterval(updatePrice, 30000); // 30 seconds
 
     return () => {
       if (intervalId) {
@@ -452,6 +453,10 @@ function TokenProfilePage() {
                 poolId={new PublicKey(tokenData?.poolAddress)}
                 tokenPrice={price}
                 tokenPriceInSol={priceInSol}
+                solBalance={solBalance}
+                tokenBalance={tokenBalance}
+                updatePrice={updatePrice}
+                updateBalances={updateBalances}
                 tokenTax={tokenData.taxInfo.total}
                 distributionTokenMintAddress={new PublicKey(tokenData.taxInfo.distributionToken?.address)}
               />
@@ -598,7 +603,7 @@ function TokenProfilePage() {
             distributionFee={Number(tokenData.taxInfo.distribute)}
             volume24h={tokenData.volume24h || 100000}
             totalSupply={tokenData.totalSupply || 1000000000}
-            userTokenBalance={walletBalance}
+            userTokenBalance={tokenBalance}
             userTokenSymbol={tokenData.ticker}
             distributionTokenSymbol={tokenData.taxInfo.distributionToken.symbol || 'Distribution Token'}
             distributionTokenPrice={125}

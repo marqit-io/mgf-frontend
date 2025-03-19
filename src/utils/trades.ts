@@ -105,8 +105,8 @@ export async function fetchRecentTrades(tokenMintAddress: string): Promise<Trade
         if (!tx) return null;
         return parseTokenTransaction(tx, tokenMintAddress);
     }));
+    const priceInfo = await getTokenPrice(tokenMintAddress);
     return Promise.all(recentTrades.filter(trade => trade !== null).map(async trade => {
-        const priceInfo = await getTokenPrice(tokenMintAddress);
         trade.amountSol = trade.amountUsd * priceInfo.priceInSol;
         trade.amountUsd *= priceInfo.price;
         return trade;

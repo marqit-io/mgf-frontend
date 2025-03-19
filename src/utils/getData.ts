@@ -133,8 +133,6 @@ export const getTokenTopHolders = async (mintAccount: PublicKey, totalSupply: nu
     const response = (await axios.get(`https://pro-api.solscan.io/v2.0/token/holders?address=${mintAccount.toString()}&page=1&page_size=10`)).data.data.items;
     const result: Holder[] = [];
 
-    console.log(response);
-
     response.forEach((item: any) => {
         result.push({
             address: item.owner,

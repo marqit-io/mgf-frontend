@@ -629,7 +629,6 @@ export async function buildSellInstruction(
         catchLiquidityInsufficient: true
     });
 
-    console.log(`Min Amount Out: ${minAmountOut.amount.raw.abs().toString()}`);
     const inputTokenAccount = await getAssociatedTokenAddress(
         inputMint,
         payer,

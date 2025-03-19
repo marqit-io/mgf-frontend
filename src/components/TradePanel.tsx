@@ -17,28 +17,23 @@ interface TradePanelProps {
   tokenPriceInSol: number;
   tokenPrice: number;
   tokenTax: number;
+  tokenBalance: number;
+  solBalance: number;
   distributionTokenMintAddress: PublicKey;
+  updatePrice: () => Promise<void>;
+  updateBalances: () => Promise<void>;
 }
 
-export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceInSol, tokenPrice, tokenTax, distributionTokenMintAddress }: TradePanelProps) {
+export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceInSol, tokenPrice, tokenTax, distributionTokenMintAddress, tokenBalance = 0, solBalance = 0, updatePrice, updateBalances }: TradePanelProps) {
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('1');
   const { publicKey, connected, signTransaction } = useWallet();
-  const [solBalance, setSolBalance] = useState(0);
-  const [tokenBalance, setTokenBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estimatedOutput, setEstimatedOutput] = useState<number | null>(null);
   const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
   const [success, setSuccess] = useState<{ message: string; signature: string } | null>(null);
-
-  useEffect(() => {
-    if (publicKey) {
-      getSolBalance(publicKey).then(setSolBalance);
-      getTokenBalance(publicKey, tokenMintAddress).then(setTokenBalance);
-    }
-  }, [publicKey, tokenMintAddress]);
 
   // Calculate amounts based on trade type
   const inputAmount = parseFloat(amount || '0');
@@ -148,7 +143,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
 
       const signedTx = await signTransaction(tx);
-      console.log(signedTx.serialize().toString('base64'));
       const signature = await connection.sendRawTransaction(signedTx.serialize());
 
       const latestBlockHash = await connection.getLatestBlockhash();
@@ -169,6 +163,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       // Wait for balances to update on-chain
       await new Promise(resolve => setTimeout(resolve, 2000));
       await updateBalances();
+      await updatePrice();
 
       // Set success message
       setSuccess({
@@ -209,24 +204,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
 
     fetchQuote();
   }, [amount, tradeType, tokenMintAddress, poolId, tokenPrice]);
-
-  // Add function to update balances
-  const updateBalances = async () => {
-    if (publicKey) {
-      const [newSolBalance, newTokenBalance] = await Promise.all([
-        getSolBalance(publicKey),
-        getTokenBalance(publicKey, tokenMintAddress)
-      ]);
-      setSolBalance(newSolBalance);
-      setTokenBalance(newTokenBalance);
-    }
-  };
-
-  // Update balances periodically while success message is shown
-  useEffect(() => {
-    const interval = setInterval(updateBalances, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="trade-panel p-6">
