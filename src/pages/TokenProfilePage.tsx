@@ -759,7 +759,10 @@ function TokenProfilePage() {
         onClose={() => setIsPnlModalOpen(false)}
         tokenSymbol={tokenData?.ticker}
         tokenAddress={tokenAddress?.toString() || ''}
-        currentPrice={price}
+        remainingTokenAmount={tokenBalance}
+        currentTokenPrice={price}
+        currentDistributionTokenPrice={125}
+        distributionTokenSymbol={tokenData.taxInfo.distributionToken.symbol || 'Distribution Token'}
       />
     </div >
   );

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Shield } from 'lucide-react';
 
@@ -6,8 +5,8 @@ function PrivacyPolicyPage() {
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="mb-6 flex items-center justify-between">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="terminal-button px-4 py-2 text-sm flex items-center gap-2"
         >
           <ArrowLeft size={16} />

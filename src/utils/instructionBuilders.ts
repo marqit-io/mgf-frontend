@@ -1,15 +1,13 @@
 import { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress, NATIVE_MINT, createCloseAccountInstruction } from "@solana/spl-token";
 import { BN, Idl, Program } from "@coral-xyz/anchor";
-import { TickUtils, Raydium, ApiV3PoolInfoConcentratedItem, ClmmKeys, WSOLMint, ComputeClmmPoolInfo, ReturnTypeFetchMultiplePoolTickArrays, CLMM_PROGRAM_ID as MAINNET_CLMM_PROGRAM_ID, DEVNET_PROGRAM_ID, PoolUtils } from "@raydium-io/raydium-sdk-v2";
+import { TickUtils, ApiV3PoolInfoConcentratedItem, ClmmKeys, WSOLMint, ComputeClmmPoolInfo, ReturnTypeFetchMultiplePoolTickArrays, CLMM_PROGRAM_ID as MAINNET_CLMM_PROGRAM_ID, DEVNET_PROGRAM_ID, PoolUtils, Fraction } from "@raydium-io/raydium-sdk-v2";
 import { DepositPositionParams, MetadataParams, TokenFeeParams } from "../types/instruction";
 import { MgfMatrix as IDL } from "./idl";
 import RaydiumService from './raydium';
 
 const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
 const mgfProgram = new Program(IDL as Idl, { connection });
-
-let raydium: Raydium;
 const isDevnet = import.meta.env.VITE_CLUSTER === "devnet";
 
 const EXECUTOR_PROGRAM_ID = new PublicKey(import.meta.env.VITE_EXECUTOR_PROGRAM_ID);
@@ -29,11 +27,6 @@ const mintAuthoritySeed = "mint_authority";
 const tokenAuthoritySeed = "token_authority";
 const clmmLockAuthoritySeed = "program_authority_seed";
 const lockedPositionSeed = "locked_position";
-
-// Initialize Raydium
-export async function initializeRaydium() {
-    return RaydiumService.getInstance();
-}
 
 export async function buildMintTokenInstruction(
     minter: PublicKey,
@@ -475,7 +468,7 @@ export async function buildBuyInstruction(
     slippage: number,
     amount: BN
 ) {
-    const raydium = await initializeRaydium();
+    const raydium = await RaydiumService.getInstance();
     let poolInfo: ApiV3PoolInfoConcentratedItem;
     let clmmPoolInfo: ComputeClmmPoolInfo;
     let tickCache: ReturnTypeFetchMultiplePoolTickArrays;
@@ -590,7 +583,7 @@ export async function buildSellInstruction(
     slippage: number,
     amount: BN
 ) {
-    const raydium = await initializeRaydium();
+    const raydium = await RaydiumService.getInstance();
     let poolInfo: ApiV3PoolInfoConcentratedItem;
     let clmmPoolInfo: ComputeClmmPoolInfo;
     let tickCache: ReturnTypeFetchMultiplePoolTickArrays;
@@ -704,7 +697,7 @@ function i32ToBeBytes(num: number): Buffer {
 }
 
 async function getPoolInfoAndKeysFromId(poolId: string): Promise<{ poolInfo: ApiV3PoolInfoConcentratedItem, poolKeys: ClmmKeys | undefined }> {
-    const raydium = await initializeRaydium();
+    const raydium = await RaydiumService.getInstance();
     if (raydium.cluster === 'mainnet') {
         const data = await raydium.api.fetchPoolById({ ids: poolId });
         return { poolInfo: data[0] as ApiV3PoolInfoConcentratedItem, poolKeys: undefined }

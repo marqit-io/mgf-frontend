@@ -1,7 +1,6 @@
 import { PublicKey, Connection } from '@solana/web3.js';
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownRight, Loader2, CheckCircle2 } from 'lucide-react';
-import { getSolBalance, getTokenBalance } from '../utils/getData';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { buildBuyInstruction, buildSellInstruction, buildWrapSolInstruction, buildUnwrapSolInstruction } from '../utils/instructionBuilders';
 import { Transaction } from '@solana/web3.js';
@@ -37,6 +36,9 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
 
   // Calculate amounts based on trade type
   const inputAmount = parseFloat(amount || '0');
+
+  // Add this near the top of the component
+  const slippageOptions = ['0.5', '1', '2', '3'];
 
   const handleSetMaxAmount = () => {
     if (tradeType === 'buy') {
@@ -277,18 +279,21 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
         </div>
 
         {/* Slippage Settings */}
-        <div>
-          <label className="block text-sm mb-2">&gt; SLIPPAGE_TOLERANCE</label>
+        <div className="space-y-2 mb-6">
+          <label className="block text-sm">
+            &gt; SLIPPAGE_TOLERANCE
+          </label>
           <div className="flex gap-2">
-            {['0.5', '1', '2', '3'].map((value) => (
+            {slippageOptions.map((option) => (
               <button
-                key={value}
-                className={`terminal-button px-3 py-1 transition-all duration-200 ${slippage === value ? 'bg-[#00ff00]/20 border-[#00ff00]' : ''
+                key={option}
+                onClick={() => setSlippage(option)}
+                className={`px-3 py-2 text-xs transition-all duration-200 border ${slippage === option
+                  ? 'bg-[#00ff00]/20 border-[#00ff00] text-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                  : 'terminal-button hover:bg-[#00ff00]/10'
                   }`}
-                onClick={() => setSlippage(value)}
-                disabled={isLoading}
               >
-                {value}%
+                {option}%
               </button>
             ))}
           </div>

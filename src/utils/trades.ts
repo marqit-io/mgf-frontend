@@ -4,9 +4,9 @@ import {
     VersionedTransactionResponse
 } from '@solana/web3.js';
 import axios from 'axios';
-import { getSolPrice } from './getData';
-import { initializeRaydium } from './instructionBuilders';
 import { SqrtPriceMath } from '@raydium-io/raydium-sdk-v2';
+import RaydiumService from './raydium';
+import { getSolPrice } from './getData';
 
 export interface TradeInfo {
     id: string;
@@ -22,7 +22,7 @@ export async function getTokenPrice(mintAddress: string): Promise<{ price: numbe
 
     try {
         const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAddress}`)).data;
-        const raydium = await initializeRaydium();
+        const raydium = await RaydiumService.getInstance();
         const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
         const priceInSol = SqrtPriceMath.sqrtPriceX64ToPrice(
             computePoolInfo.sqrtPriceX64,

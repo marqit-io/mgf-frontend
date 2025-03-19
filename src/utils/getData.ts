@@ -2,8 +2,8 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import axios from 'axios';
 import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2"
-import { initializeRaydium } from './instructionBuilders';
 import { Metadata } from '@metaplex-foundation/mpl-token-metadata';
+import RaydiumService from './raydium';
 
 interface Holder {
     address: string;
@@ -186,7 +186,7 @@ export const getTopGlitchTokens = async () => {
                 const tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${item.mint}`)).data;
                 const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${item.mint}`)).data;
                 const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${item.mint}`)).data;
-                const raydium = await initializeRaydium();
+                const raydium = await RaydiumService.getInstance();
                 const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
                 const currentPrice = SqrtPriceMath.sqrtPriceX64ToPrice(
                     computePoolInfo.sqrtPriceX64,
