@@ -169,9 +169,9 @@ function CreateCoinPage() {
           // }));
           // For testing purpose
           setSearchResults([{
-            address: "DB2oouXfnuxTmWLZPrFGyAF8ji3Q5RCTxCF8gcKHMGF",
-            name: "Test",
-            symbol: "TEST"
+            address: "RaUovaM5yMnoqbcmT8P2PDDAJ6qwRtBJX3BoJ8PjMGF",
+            name: "Test Reward",
+            symbol: "RWT"
           }]);
           setIsSearching(false);
         }).catch((error) => {

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Download, Copy, X, Zap, Loader2, CheckCircle2 } from 'lucide-react';
+import { Download, Copy, X, Loader2, CheckCircle2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { useWallet } from '@solana/wallet-adapter-react';
 
@@ -46,6 +46,8 @@ export function PnlCalculatorModal({
         { text: 'Fetching transaction history...', status: 'pending' },
         { text: 'Calculating profits...', status: 'pending' }
     ]);
+    const [isCopying, setIsCopying] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     // Add reset function
     const resetCalculator = () => {
@@ -112,7 +114,10 @@ export function PnlCalculatorModal({
     const handleCopyImage = async () => {
         if (!pnlCardRef.current) return;
         try {
-            const dataUrl = await toPng(pnlCardRef.current);
+            setIsCopying(true);
+            const dataUrl = await toPng(pnlCardRef.current, {
+                backgroundColor: 'transparent',
+            });
             const response = await fetch(dataUrl);
             const blob = await response.blob();
 
@@ -126,19 +131,26 @@ export function PnlCalculatorModal({
             setTimeout(() => setCopySuccess(false), 2000);
         } catch (error) {
             console.error('Error copying image:', error);
+        } finally {
+            setIsCopying(false);
         }
     };
 
     const handleDownloadImage = async () => {
         if (!pnlCardRef.current) return;
         try {
-            const dataUrl = await toPng(pnlCardRef.current);
+            setIsDownloading(true);
+            const dataUrl = await toPng(pnlCardRef.current, {
+                backgroundColor: 'transparent',
+            });
             const link = document.createElement('a');
             link.download = `${tokenSymbol}-pnl.png`;
             link.href = dataUrl;
             link.click();
         } catch (error) {
             console.error('Error downloading image:', error);
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -184,7 +196,7 @@ export function PnlCalculatorModal({
                 {isLoading ? renderLoadingState() : (
                     <>
                         <div ref={pnlCardRef}
-                            className="rounded-lg p-6 relative overflow-hidden bg-black"
+                            className="p-6 relative overflow-hidden bg-black"
                             style={{
                                 backgroundImage: `linear-gradient(135deg, rgba(0, 15, 0, 0.95) 0%, rgba(0, 5, 0, 0.98) 100%)`
                             }}
@@ -201,7 +213,7 @@ export function PnlCalculatorModal({
                             <div className="relative h-full flex flex-col">
                                 {/* Brand */}
                                 <div className="flex items-center gap-2 mb-6">
-                                    <Zap size={20} className="text-[#00ff00]" />
+                                    <img src="/favicon.png" alt="MoneyGlitch" width={30} height={30} />
                                     <span className="text-xl font-mono font-bold text-[#00ff00] tracking-[2px]" style={{
                                         fontFamily: 'Source Code Pro, monospace',
                                         textShadow: '0 0 5px rgba(0, 255, 0, 0.7), 0 0 10px rgba(0, 255, 0, 0.5), 0 0 15px rgba(0, 255, 0, 0.3)'
@@ -280,16 +292,26 @@ export function PnlCalculatorModal({
                         <div className="flex gap-4 mt-4">
                             <button
                                 onClick={handleCopyImage}
+                                disabled={isCopying}
                                 className="flex-1 terminal-button px-4 py-2 flex items-center justify-center gap-2"
                             >
-                                <Copy size={16} />
+                                {isCopying ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <Copy size={16} />
+                                )}
                                 {copySuccess ? 'Copied!' : 'Copy Image'}
                             </button>
                             <button
                                 onClick={handleDownloadImage}
+                                disabled={isDownloading}
                                 className="flex-1 terminal-button px-4 py-2 flex items-center justify-center gap-2"
                             >
-                                <Download size={16} />
+                                {isDownloading ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <Download size={16} />
+                                )}
                                 Download
                             </button>
                         </div>

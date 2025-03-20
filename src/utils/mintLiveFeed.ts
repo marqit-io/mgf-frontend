@@ -64,7 +64,7 @@ export function subscribeToTokenMints(
 
 const parseMintTokenTransaction = async (tx: VersionedTransactionResponse) => {
     // Get the discriminator for updateTransferFee instruction
-    const discriminator = IDL.instructions.find(ix => ix.name === "mintToken")?.discriminator;
+    const discriminator = IDL.instructions.find((ix: any) => ix.name === "mintToken")?.discriminator;
     if (!discriminator) return null;
 
     // Convert discriminator to Uint8Array for comparison

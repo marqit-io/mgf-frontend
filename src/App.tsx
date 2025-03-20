@@ -15,6 +15,7 @@ import { ArrowUpRight } from 'lucide-react';
 import { WalletContextProvider } from './context/WalletContext';
 import { TosCheck } from './components/TosCheck';
 import { DisclaimerPopup } from './components/DisclaimerPopup';
+import PointsPage from './pages/PointsPage';
 
 function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
@@ -44,7 +45,7 @@ function App() {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
                       <Link to="/" className="glitch-text text-xl sm:text-2xl">moneyglitch.fun</Link>
-                      <div className="hidden sm:flex items-center gap-2">
+                      <div className="hidden md:flex items-center gap-2">
                         <Link
                           to="/glitch-vision"
                           className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5"
@@ -94,6 +95,12 @@ function App() {
                     <>
                       <TosCheck />
                       <GlitchVisionPage />
+                    </>
+                  } />
+                  <Route path="/points" element={
+                    <>
+                      <TosCheck />
+                      <PointsPage />
                     </>
                   } />
                   <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />

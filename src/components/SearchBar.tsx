@@ -50,7 +50,7 @@ export function SearchBar() {
   };
 
   return (
-    <div ref={searchRef} className="relative w-full">
+    <div ref={searchRef} className="relative w-full mb-4">
       <div className="flex items-center gap-2 p-2 bg-black/30 rounded border border-[#00ff00]/20">
         <Search size={18} className="text-[#00ff00] opacity-70" />
         <input

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Timer, ArrowUpRight, ArrowDownRight, Copy, Check, Sparkles, Globe, X, MessageCircle, ExternalLink, Calculator } from 'lucide-react';
+import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Timer, ArrowUpRight, ArrowDownRight, Copy, Check, Sparkles, Globe, ExternalLink, Share } from 'lucide-react';
 import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
 import { PublicKey } from '@solana/web3.js';
@@ -9,6 +9,8 @@ import { subscribeToTokenTrades, fetchRecentTrades, getTokenPrice } from '../uti
 import { PnlCalculatorModal } from '../components/PnlCalculatorModal';
 import { RewardsCalculator } from '../components/RewardsCalculator';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { XLogo } from '../components/XLogo';
+import { TelegramLogo } from '../components/TelegramLogo';
 interface Transaction {
   id: string;
   timestamp: string;
@@ -376,17 +378,20 @@ function TokenProfilePage() {
                           <Globe size={14} />
                         </a>}
                         {tokenData?.socialLinks?.twitter && <a href={tokenData?.socialLinks?.twitter} target="_blank" rel="noopener noreferrer" className="terminal-button p-1.5">
-                          <X size={14} />
+                          <XLogo className="w-3.5 h-3.5 text-[#00ff00]" />
                         </a>}
                         {tokenData?.socialLinks?.telegram && <a href={tokenData?.socialLinks?.telegram} target="_blank" rel="noopener noreferrer" className="terminal-button p-1.5">
-                          <MessageCircle size={14} />
+                          <TelegramLogo className="w-3.5 h-3.5 text-[#00ff00]" />
                         </a>}
-                        <button
+                        {connected && publicKey && <button
                           onClick={() => setIsPnlModalOpen(true)}
-                          className="terminal-button p-1.5 hover:bg-[#00ff00]/10"
+                          className="terminal-button px-3 py-1.5 flex items-center gap-2 relative group animate-pulse hover:animate-none"
+                          title="Share Your P&L"
                         >
-                          <Calculator size={14} />
-                        </button>
+                          <Share size={14} />
+                          <span className="text-xs">P&L</span>
+                          <div className="absolute inset-0 rounded border border-[#00ff00]/50 animate-ping"></div>
+                        </button>}
                       </>
                     ) : (
                       <div className="flex gap-2">

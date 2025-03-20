@@ -1,8 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, getTokenMetadata } from '@solana/spl-token';
 import axios from 'axios';
 import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2"
-import { Metadata } from '@metaplex-foundation/mpl-token-metadata';
 import RaydiumService from './raydium';
 
 interface Holder {
@@ -46,8 +45,8 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
             distribute: taxInfoResponse.distribution_rate,
             interval: taxInfoResponse.distribution_interval,
             distributionToken: {
-                symbol: distributionTokenMetadata?.data?.symbol.replace(/\0/g, '').trim(),
-                name: distributionTokenMetadata?.data?.name.replace(/\0/g, '').trim(),
+                symbol: distributionTokenMetadata?.symbol.replace(/\0/g, '').trim(),
+                name: distributionTokenMetadata?.name.replace(/\0/g, '').trim(),
                 address: taxInfoResponse.distribution_mint
             }
         },
@@ -284,8 +283,9 @@ export const getTotalStats = async () => {
     const response = (await axios.get(`https://api.moneyglitch.fun/v1/stats/platform`)).data;
     return response;
 };
-
+/*
 export async function getTokenMetadata(connection: Connection, mint: PublicKey) {
+     When token is TOKEN-2022 this code does not work. Need to use API on Mainnet
     try {
         const [metadataAddress] = PublicKey.findProgramAddressSync(
             [
@@ -307,4 +307,13 @@ export async function getTokenMetadata(connection: Connection, mint: PublicKey) 
         console.error('Error fetching token metadata:', error);
         return null;
     }
+    
+
+return {
+    data: {
+        name: "Wrapped SOL",
+        symbol: "SOL",
+    }
 }
+}
+*/

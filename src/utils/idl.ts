@@ -1359,8 +1359,8 @@ export const MgfMatrix = {
   "errors": [
     {
       "code": 6000,
-      "name": "transferFeeTooHigh",
-      "msg": "TransferFeeTooHigh max 900 bps"
+      "name": "invalidQuoteToken",
+      "msg": "Invalid quote token"
     }
   ],
   "types": [
@@ -2131,6 +2131,18 @@ export const MgfMatrix = {
             "name": "distributionMint",
             "type": {
               "option": "pubkey"
+            }
+          },
+          {
+            "name": "distributionMintProgram",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "distributionMintDecimals",
+            "type": {
+              "option": "u8"
             }
           },
           {
