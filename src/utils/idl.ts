@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/mgf_matrix.json`.
  */
 export const MgfMatrix = {
-  "address": "mgfwzGZkHjdjDGzz8hGDbMFd8tyd9UDFDeHr1Gvwbwb",
+  "address": "mgfMhZtNwPrg5B2xB7UcuksTYdxMxjZC4E7tG41o57e",
   "metadata": {
     "name": "mgfMatrix",
     "version": "0.1.0",

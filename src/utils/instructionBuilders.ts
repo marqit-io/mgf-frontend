@@ -1,7 +1,7 @@
 import { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress, NATIVE_MINT, createCloseAccountInstruction } from "@solana/spl-token";
 import { BN, Idl, Program } from "@coral-xyz/anchor";
-import { TickUtils, ApiV3PoolInfoConcentratedItem, ClmmKeys, WSOLMint, ComputeClmmPoolInfo, ReturnTypeFetchMultiplePoolTickArrays, CLMM_PROGRAM_ID as MAINNET_CLMM_PROGRAM_ID, DEVNET_PROGRAM_ID, PoolUtils, Fraction } from "@raydium-io/raydium-sdk-v2";
+import { TickUtils, ApiV3PoolInfoConcentratedItem, WSOLMint, ComputeClmmPoolInfo, ReturnTypeFetchMultiplePoolTickArrays, CLMM_PROGRAM_ID as MAINNET_CLMM_PROGRAM_ID, DEVNET_PROGRAM_ID, PoolUtils } from "@raydium-io/raydium-sdk-v2";
 import { DepositPositionParams, MetadataParams, TokenFeeParams } from "../types/instruction";
 import { MgfMatrix as IDL } from "./idl";
 import RaydiumService from './raydium';
@@ -210,10 +210,8 @@ export async function buildDepositPoolInstruction(
         CLMM_PROGRAM_ID
     )[0];
 
-    const poolId = poolState.toBase58();
-    const { poolInfo } = await getPoolInfoAndKeysFromId(poolId);
-    const tickArrayLowerStartIndex = TickUtils.getTickArrayStartIndexByTick(minTick, poolInfo.config.tickSpacing);
-    const tickArrayUpperStartIndex = TickUtils.getTickArrayStartIndexByTick(maxTick, poolInfo.config.tickSpacing);
+    const tickArrayLowerStartIndex = TickUtils.getTickArrayStartIndexByTick(minTick, 120);
+    const tickArrayUpperStartIndex = TickUtils.getTickArrayStartIndexByTick(maxTick, 120);
 
     const positionNftAccount = getAssociatedTokenAddressSync(
         positionNftMint,
@@ -385,7 +383,7 @@ export function buildLockLiquidityInstruction(
     const feeNftAccount = getAssociatedTokenAddressSync(
         feeNftMint,
         PLATFORM_FEE_ACCOUNT,
-        false,
+        true,
         TOKEN_PROGRAM_ID,
     );
 
@@ -694,17 +692,6 @@ function i32ToBeBytes(num: number): Buffer {
     const buffer = Buffer.alloc(4);
     buffer.writeInt32BE(num, 0);
     return buffer;
-}
-
-async function getPoolInfoAndKeysFromId(poolId: string): Promise<{ poolInfo: ApiV3PoolInfoConcentratedItem, poolKeys: ClmmKeys | undefined }> {
-    const raydium = await RaydiumService.getInstance();
-    if (raydium.cluster === 'mainnet') {
-        const data = await raydium.api.fetchPoolById({ ids: poolId });
-        return { poolInfo: data[0] as ApiV3PoolInfoConcentratedItem, poolKeys: undefined }
-    } else {
-        const data = await raydium.clmm.getPoolInfoFromRpc(poolId);
-        return { poolInfo: data.poolInfo, poolKeys: data.poolKeys }
-    }
 }
 
 function isValidClmm(id: string) {
