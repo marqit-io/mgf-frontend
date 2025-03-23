@@ -1,7 +1,6 @@
 import { Connection, PublicKey, VersionedTransactionResponse } from "@solana/web3.js";
 import { getTokenMetadata } from "@solana/spl-token"
 import { MgfMatrix as IDL } from "./idl";
-import { changeGateway } from "./getData";
 
 export type MintInfo = {
     mintAddress: string;
@@ -116,9 +115,9 @@ const parseMintTokenTransaction = async (tx: VersionedTransactionResponse) => {
     let imageUrl = "";
     if (tokenMetadata?.uri) {
         try {
-            const response = await fetch(changeGateway(tokenMetadata.uri));
+            const response = await fetch(tokenMetadata.uri);
             const metadata = await response.json();
-            imageUrl = changeGateway(metadata.image) || ""; // Most NFT metadata standards use 'image' field
+            imageUrl = metadata.image || ""; // Most NFT metadata standards use 'image' field
         } catch (error) {
             console.error('Error fetching metadata:', error);
         }

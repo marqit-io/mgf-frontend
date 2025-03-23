@@ -47,11 +47,11 @@ export function DisclaimerPopup({ onAccept }: DisclaimerPopupProps) {
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-[#00ff00]">step 2:</span>
-              <span>configure your tax and distribution settings</span>
+              <span>hold the token and receive rewards</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-[#00ff00]">step 3:</span>
-              <span>sell at any time to lock in your profits or losses</span>
+              <span>sell at anytime and stop receiving rewards</span>
             </div>
           </div>
 

@@ -5,6 +5,11 @@ export interface TokenMetadata {
   symbol: string;
   description: string;
   image: File;
+  extensions: {
+    telegram?: string;
+    website?: string;
+    twitter?: string;
+  };
   attributes: {
     transferTax: number;
     taxDistribution: {
@@ -12,11 +17,6 @@ export interface TokenMetadata {
       distribute: number;
     };
     glitchInterval: number;
-    socialLinks: {
-      telegram?: string;
-      website?: string;
-      twitter?: string;
-    };
   };
 }
 
@@ -29,7 +29,7 @@ export async function uploadTokenMetadata(metadata: TokenMetadata): Promise<stri
     });
 
     const imageResult = await pinata.upload.file(metadata.image);
-    const imageUrl = `https://gateway.pinata.cloud/ipfs/${imageResult.IpfsHash}`;
+    const imageUrl = `https://ipfs.io/ipfs/${imageResult.IpfsHash}`;
 
     console.log(imageUrl);
 
@@ -38,13 +38,14 @@ export async function uploadTokenMetadata(metadata: TokenMetadata): Promise<stri
       symbol: metadata.symbol,
       description: metadata.description,
       image: imageUrl,
+      extensions: metadata.extensions,
       attributes: metadata.attributes
     };
 
     const metadataResult = await pinata.upload.json(tokenMetadata);
 
     console.log(`https://gateway.pinata.cloud/ipfs/${metadataResult.IpfsHash}`);
-    return `https://gateway.pinata.cloud/ipfs/${metadataResult.IpfsHash}`;
+    return `https://ipfs.io/ipfs/${metadataResult.IpfsHash}`;
   } catch (error) {
     if (error instanceof Error) {
       console.error('Error uploading to IPFS:', error.message);

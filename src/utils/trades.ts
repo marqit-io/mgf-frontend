@@ -7,6 +7,7 @@ import axios from 'axios';
 import { SqrtPriceMath } from '@raydium-io/raydium-sdk-v2';
 import RaydiumService from './raydium';
 import { getSolPrice } from './getData';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
 export interface TradeInfo {
     id: string;
@@ -15,6 +16,7 @@ export interface TradeInfo {
     amountUsd: number;
     amountSol: number;
     txHash: string;
+    price?: number;
 }
 
 
@@ -37,62 +39,118 @@ export async function getTokenPrice(mintAddress: string): Promise<{ price: numbe
     }
 }
 
+// Define the bytes as a constant
+const raydiumSwapInstructionDiscriminator = Buffer.from([0x2b, 0x04, 0xed, 0x0b, 0x1a, 0xc9, 0x1e, 0x62]);
+
+function getRaydiumSwapInstructions(tx: VersionedTransactionResponse) {
+    // Get all account keys including lookup tables
+    let allAccountKeys = tx.transaction.message.staticAccountKeys;
+
+    // Add lookup table accounts if they exist
+    if ('addressTableLookups' in tx.transaction.message && tx.meta?.loadedAddresses) {
+        allAccountKeys = [
+            ...allAccountKeys,
+            ...tx.meta.loadedAddresses.writable,
+            ...tx.meta.loadedAddresses.readonly
+        ];
+    }
+
+    const raydiumAccountIndex = allAccountKeys.findIndex(account =>
+        account.toString() === 'CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK'
+    );
+
+    if (raydiumAccountIndex === -1) return null;
+
+    // Get main instructions
+    const mainInstructions = tx.transaction.message.compiledInstructions
+        .filter(instruction => instruction.programIdIndex === raydiumAccountIndex)
+        .filter(instruction =>
+            Buffer.from(instruction.data.slice(0, 8)).equals(raydiumSwapInstructionDiscriminator)
+        );
+
+    // Get inner instructions
+    const innerInstructions = tx.meta?.innerInstructions?.flatMap(inner =>
+        inner.instructions.filter(instruction => {
+            if (instruction.programIdIndex !== raydiumAccountIndex) return false;
+            return bs58.decode(instruction.data).subarray(0, 8).equals(raydiumSwapInstructionDiscriminator);
+        })
+    ) || [];
+
+    return [...mainInstructions, ...innerInstructions];
+}
+
 function parseTokenTransaction(
     tx: VersionedTransactionResponse,
     tokenMintAddress: string
 ): TradeInfo | null {
+    if (tx.transaction.signatures[0].toString() == "iaGHNhDpBgGa9rKHXzyvYzM8AjmiKySRyhyEu7AXMLHFyPN4KjgyRHqyLaz3dvm6sCNepVP5PNCg4xiGLvD9kW4") {
+        debugger;
+    }
     try {
+        const swapInstructions = getRaydiumSwapInstructions(tx);
+        if (!swapInstructions || swapInstructions.length === 0) return null;
+
         const preTokenBalances = tx.meta?.preTokenBalances || [];
         const postTokenBalances = tx.meta?.postTokenBalances || [];
-
-        // Find relevant token transfers
-        const tokenTransfers = postTokenBalances
-            .filter(post => post.mint === tokenMintAddress)
-            .map(post => {
-                const pre = preTokenBalances.find(
-                    pre => pre.accountIndex === post.accountIndex && pre.mint === post.mint
-                );
-
-                const amount = (Number(post.uiTokenAmount.amount) -
-                    Number(pre?.uiTokenAmount.amount || 0)) /
-                    Math.pow(10, post.uiTokenAmount.decimals);
-
-                return {
-                    amount,
-                    owner: post.owner || ''
-                };
-            })
-            .filter(transfer => transfer.amount !== 0);
-
-        if (tokenTransfers.length === 0) return null;
-
-        // Get the fee payer's address
         const feePayer = tx.transaction.message.staticAccountKeys[0].toString();
 
-        // Find fee payer's transfers
-        const feePayerTransfers = tokenTransfers.filter(transfer => transfer.owner === feePayer);
+        // Get token balance changes
+        const tokenTransfers = postTokenBalances
+            .filter(post => post.mint === tokenMintAddress && post.owner === feePayer)
+            .map(post => {
+                const pre = preTokenBalances.find(pre =>
+                    pre.accountIndex === post.accountIndex &&
+                    pre.mint === post.mint
+                );
+                if (!pre) return null;
+                return {
+                    amount: (post.uiTokenAmount.uiAmount || 0) - (pre.uiTokenAmount.uiAmount || 0),
+                    tokenMint: post.mint,
+                    owner: post.owner
+                };
+            })
+            .filter(Boolean);
 
-        // Find the transfer with the largest absolute amount among fee payer's transfers
-        const mainTransfer = feePayerTransfers.reduce((max, transfer) =>
-            Math.abs(transfer.amount) > Math.abs(max.amount) ? transfer : max
-            , feePayerTransfers[0]);
+        // Get SOL/WSOL balance changes
+        const wsolTransfers = postTokenBalances
+            .filter(post =>
+                post.mint === 'So11111111111111111111111111111111111111112' &&
+                post.owner === feePayer
+            )
+            .map(post => {
+                const pre = preTokenBalances.find(pre =>
+                    pre.accountIndex === post.accountIndex &&
+                    pre.mint === post.mint
+                );
+                if (!pre) return null;
+                return {
+                    amount: (post.uiTokenAmount.uiAmount || 0) - (pre.uiTokenAmount.uiAmount || 0),
+                    owner: post.owner
+                };
+            })
+            .filter(Boolean);
 
-        // If no matching transfer is found, return null
-        if (!mainTransfer) return null;
+        const mainTokenTransfer = tokenTransfers[0];
+        const mainWsolTransfer = wsolTransfers[0];
 
-        // Determine if this is a buy or sell
-        const type = mainTransfer.amount > 0 ? 'BUY' : 'SELL';
+        if (!mainTokenTransfer) return null;
+
+        // Calculate price if both transfers exist
+        const price = mainWsolTransfer && mainTokenTransfer.amount !== 0
+            ? Math.abs(mainWsolTransfer.amount / mainTokenTransfer.amount)
+            : tx.meta?.postBalances && tx.meta?.preBalances ? Math.abs(tx.meta?.postBalances[0] - tx.meta?.preBalances[0]) / 10 ** 9 / mainTokenTransfer.amount : undefined;
 
         return {
             id: tx.transaction.signatures[0],
-            timestamp: new Date().toISOString(),
-            type,
-            amountUsd: Math.abs(mainTransfer.amount), // Will be multiplied by price later
-            amountSol: 0,
-            txHash: tx.transaction.signatures[0]
+            timestamp: tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : new Date().toISOString(),
+            type: mainTokenTransfer.amount > 0 ? 'BUY' : 'SELL',
+            amountUsd: Math.abs(mainTokenTransfer.amount),
+            amountSol: mainWsolTransfer ? Math.abs(mainWsolTransfer.amount) : tx.meta?.postBalances ? Math.abs(tx.meta?.postBalances[0] - tx.meta?.preBalances[0]) / 10 ** 9 : 0,
+            txHash: tx.transaction.signatures[0],
+            price
         };
     } catch (error) {
-        console.error('Error parsing transaction:', error);
+        console.error('Error parsing Raydium swap transaction:', error);
         return null;
     }
 }
@@ -100,6 +158,7 @@ function parseTokenTransaction(
 export async function fetchRecentTrades(tokenMintAddress: string): Promise<TradeInfo[]> {
     const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
     const signatures = await connection.getSignaturesForAddress(new PublicKey(tokenMintAddress), { limit: 10 }, "confirmed");
+    console.log(signatures.map(sinature => sinature.signature.toString()));
     const recentTrades = await Promise.all(signatures.map(async (signature) => {
         const tx = await connection.getTransaction(signature.signature, { maxSupportedTransactionVersion: 0 });
         if (!tx) return null;
@@ -107,7 +166,6 @@ export async function fetchRecentTrades(tokenMintAddress: string): Promise<Trade
     }));
     const priceInfo = await getTokenPrice(tokenMintAddress);
     return Promise.all(recentTrades.filter(trade => trade !== null).map(async trade => {
-        trade.amountSol = trade.amountUsd * priceInfo.priceInSol;
         trade.amountUsd *= priceInfo.price;
         return trade;
     }));
@@ -144,7 +202,6 @@ export function subscribeToTokenTrades(
                     const tradeInfo = parseTokenTransaction(tx, tokenMintAddress);
                     if (tradeInfo) {
                         const priceInfo = await getTokenPrice(tokenMintAddress);
-                        tradeInfo.amountSol = tradeInfo.amountUsd * priceInfo.priceInSol;
                         tradeInfo.amountUsd *= priceInfo.price;
 
                         onTrade(tradeInfo);

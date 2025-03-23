@@ -122,6 +122,7 @@ function TokenProfilePage() {
     if (tokenAddress) {
       try {
         const { price, priceInSol } = await getTokenPrice(tokenAddress.toString());
+        if (price == 0) return;
         setPrice(price);
         setPriceInSol(priceInSol);
       } catch (error) {
@@ -131,12 +132,15 @@ function TokenProfilePage() {
   };
 
   const updateBalances = async () => {
+    console.log('Updating balances ....');
     if (connected && publicKey && tokenAddress) {
       getTokenBalance(publicKey, tokenAddress).then(balance => {
         setTokenBalance(balance);
+        console.log("Token Balance :", balance);
       });
       getSolBalance(publicKey).then(balance => {
         setSolBalance(balance);
+        console.log("Sol Balance :", balance);
       });
     }
   };
@@ -405,7 +409,8 @@ function TokenProfilePage() {
                     {tokenData ? (
                       <>
                         <div className="text-xl">{price ? formatPrice(price) : '--'}</div>
-                        {tokenData.priceChange24h &&
+                        {
+                          tokenData.priceChange24h !== 0 &&
                           <div className={`flex items-center justify-end ${tokenData.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {tokenData.priceChange24h >= 0 ? <TrendUp size={14} /> : <TrendingDown size={14} />}
                             <span className="ml-1 text-sm">{tokenData.priceChange24h}%</span>
@@ -606,7 +611,7 @@ function TokenProfilePage() {
         <div className="mb-4">
           <RewardsCalculator
             distributionFee={Number(tokenData.taxInfo.distribute)}
-            volume24h={tokenData.volume24h || 100000}
+            volume24h={tokenData.volume24h || 0}
             totalSupply={tokenData.totalSupply || 1000000000}
             userTokenBalance={tokenBalance}
             userTokenSymbol={tokenData.ticker}

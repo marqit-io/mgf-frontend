@@ -16,9 +16,8 @@ const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfc
 const PLATFORM_FEE_ACCOUNT = isDevnet ? new PublicKey("mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ") : new PublicKey("7j5bdSE2k4xcqvCEjK223CFTeDvLMPskXYJKj3ZgtPaL");
 const POOL_CONFIG = isDevnet ? new PublicKey("GjLEiquek1Nc2YjcBhufUGFRkaqW1JhaGjsdFd8mys38") : new PublicKey("Gex2NJRS3jVLPfbzSFM5d5DRsNoL5ynnwT1TXoDEhanz");
 const LOCKING_PROGRAM_ID = isDevnet ? new PublicKey("DLockwT7X7sxtLmGH9g5kmfcjaBtncdbUmi738m5bvQC") : new PublicKey("LockrWmn6K5twhz3y9w1dQERbmgSaRkfnTeTKbpofwE");
-const CRANKER_PROGRAM_ID = isDevnet ? new PublicKey("crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1") : new PublicKey("FSUe5MMWfHTuzdsEgSWNcbtt2akgSqKovJbwts6FYt2W");
+const CRANKER_PROGRAM_ID = new PublicKey("crnkhL22KkRwLWFH5V3Zq33MZ2kH6iJ4Uhy9HDShbU1");
 const CLMM_PROGRAM_ID = isDevnet ? DEVNET_PROGRAM_ID.CLMM : MAINNET_CLMM_PROGRAM_ID;
-const VALID_PROGRAM_ID = new Set([CLMM_PROGRAM_ID.toBase58(), DEVNET_PROGRAM_ID.CLMM.toBase58()])
 
 // Seeds for derive PDAs
 const withdrawAuthoritySeed = "withdraw_authority";
@@ -125,7 +124,7 @@ export async function buildMintTokenInstruction(
 }
 
 
-export function buildCreatePoolInstruction(
+export async function buildCreatePoolInstruction(
     minter: PublicKey,
     token0: PublicKey,
     token1: PublicKey,
@@ -175,7 +174,7 @@ export function buildCreatePoolInstruction(
         CLMM_PROGRAM_ID
     )[0];
 
-    return mgfProgram.methods.createPool(sqrtPriceX64, openTime).accounts({
+    const instruction = await mgfProgram.methods.createPool(sqrtPriceX64, openTime).accounts({
         minter: minter,
         ammConfig: POOL_CONFIG,
         poolState,
@@ -191,6 +190,21 @@ export function buildCreatePoolInstruction(
         clmmProgram: CLMM_PROGRAM_ID,
         rent: SYSVAR_RENT_PUBKEY,
     }).instruction();
+
+    return {
+        instruction,
+        keys: {
+            mint: token0.toString(),
+            pool_id: poolState.toString(),
+            quote_token: token1.toString(),
+            token_0_mint: token0.toString(),
+            token_1_mint: token1.toString(),
+            token_0_vault: tokenVault0.toString(),
+            token_1_vault: tokenVault1.toString(),
+            observation_state: observationState.toString(),
+            tick_array_bitmap: tickArrayBitmap.toString(),
+        }
+    }
 }
 
 export async function buildDepositPoolInstruction(
@@ -471,26 +485,10 @@ export async function buildBuyInstruction(
     let clmmPoolInfo: ComputeClmmPoolInfo;
     let tickCache: ReturnTypeFetchMultiplePoolTickArrays;
 
-    if (raydium.cluster === 'mainnet') {
-        const data = await raydium.api.fetchPoolById({ ids: poolId.toBase58() });
-        poolInfo = data[0] as ApiV3PoolInfoConcentratedItem;
-        if (!isValidClmm(poolInfo.programId)) throw new Error('target pool is not CLMM pool');
-
-        clmmPoolInfo = await PoolUtils.fetchComputeClmmInfo({
-            connection: raydium.connection,
-            poolInfo,
-        });
-
-        tickCache = await PoolUtils.fetchMultiplePoolTickArrays({
-            connection: raydium.connection,
-            poolKeys: [clmmPoolInfo],
-        });
-    } else {
-        const data = await raydium.clmm.getPoolInfoFromRpc(poolId.toBase58());
-        poolInfo = data.poolInfo;
-        clmmPoolInfo = data.computePoolInfo;
-        tickCache = data.tickData;
-    }
+    const data = await raydium.clmm.getPoolInfoFromRpc(poolId.toBase58());
+    poolInfo = data.poolInfo;
+    clmmPoolInfo = data.computePoolInfo;
+    tickCache = data.tickData;
 
     if (inputMint.toBase58() !== poolInfo.mintB.address)
         throw new Error('input mint does not match pool')
@@ -545,6 +543,8 @@ export async function buildBuyInstruction(
         isWritable: true
     }));
 
+    console.log(CRANKER_PROGRAM_ID.toBase58());
+
     return mgfProgram.methods
         .buy(
             minAmountOut.amount.raw.abs(),
@@ -586,26 +586,10 @@ export async function buildSellInstruction(
     let clmmPoolInfo: ComputeClmmPoolInfo;
     let tickCache: ReturnTypeFetchMultiplePoolTickArrays;
 
-    if (raydium.cluster === 'mainnet') {
-        const data = await raydium.api.fetchPoolById({ ids: poolId.toBase58() });
-        poolInfo = data[0] as ApiV3PoolInfoConcentratedItem;
-        if (!isValidClmm(poolInfo.programId)) throw new Error('target pool is not CLMM pool');
-
-        clmmPoolInfo = await PoolUtils.fetchComputeClmmInfo({
-            connection: raydium.connection,
-            poolInfo,
-        });
-
-        tickCache = await PoolUtils.fetchMultiplePoolTickArrays({
-            connection: raydium.connection,
-            poolKeys: [clmmPoolInfo],
-        });
-    } else {
-        const data = await raydium.clmm.getPoolInfoFromRpc(poolId.toBase58());
-        poolInfo = data.poolInfo;
-        clmmPoolInfo = data.computePoolInfo;
-        tickCache = data.tickData;
-    }
+    const data = await raydium.clmm.getPoolInfoFromRpc(poolId.toBase58());
+    poolInfo = data.poolInfo;
+    clmmPoolInfo = data.computePoolInfo;
+    tickCache = data.tickData;
 
     if (inputMint.toBase58() !== poolInfo.mintA.address)
         throw new Error('input mint does not match pool')
@@ -692,8 +676,4 @@ function i32ToBeBytes(num: number): Buffer {
     const buffer = Buffer.alloc(4);
     buffer.writeInt32BE(num, 0);
     return buffer;
-}
-
-function isValidClmm(id: string) {
-    return VALID_PROGRAM_ID.has(id);
 }

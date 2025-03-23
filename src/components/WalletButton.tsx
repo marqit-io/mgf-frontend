@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, ChevronDown, Gift, Users, LogOut } from 'lucide-react';
+import { Wallet, ChevronDown, Gift, LogOut } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
@@ -72,17 +72,6 @@ export function WalletButton() {
             >
               <Gift size={16} className="text-[#00ff00]" />
               <span>Points</span>
-            </button>
-
-            <button
-              onClick={() => {
-                navigate('/referral');
-                setIsOpen(false);
-              }}
-              className="w-full px-4 py-2 text-left flex items-center gap-2 hover:bg-[#00ff00]/10 transition-colors"
-            >
-              <Users size={16} className="text-[#00ff00]" />
-              <span>Referrals</span>
             </button>
 
             <div className="border-t border-[#00ff00]/20 my-1"></div>

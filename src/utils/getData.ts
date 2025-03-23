@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID, getTokenMetadata } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import axios from 'axios';
 import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2"
 import RaydiumService from './raydium';
@@ -15,29 +15,47 @@ interface Holder {
     realizedPnl: number;
 }
 
-export const changeGateway = (url: string) => {
-    return url.replace('https://gateway.pinata.cloud/ipfs/', 'https://ipfs.io/ipfs/');
-}
-
 export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
     let tokenData: any = {};
-    const tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`)).data;
+    let tokenSolscanMetadata: any = {};
+    let tokenInfoResponse: any = {};
+    let metadataResponse: any = {};
+    const solscanApiKey = import.meta.env.VITE_SOLSCAN_API_KEY;
+    try {
+        tokenSolscanMetadata = (await axios.get(`https://pro-api.solscan.io/v2.0/token/meta/?address=${mintAccount.toString()}`, { headers: { 'token': solscanApiKey } })).data.data;
+    } catch (error) {
+        tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`)).data;
+        metadataResponse = (await axios.get(tokenInfoResponse.uri)).data;
+    }
+    if (!tokenSolscanMetadata?.data?.metadata?.name) {
+        tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`)).data;
+        metadataResponse = (await axios.get(tokenInfoResponse.uri)).data;
+    }
     const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAccount.toString()}`)).data;
-    const metadataResponse = (await axios.get(changeGateway(tokenInfoResponse.uri))).data;
     const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`)).data;
     const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)).data;
-    const distributionTokenMetadata = await getTokenMetadata(new Connection(import.meta.env.VITE_RPC_ENDPOINT), new PublicKey(taxInfoResponse.distribution_mint));
+    const distributionTokenMetadata = (await axios.get(`https://pro-api.solscan.io/v2.0/token/meta/?address=${taxInfoResponse.distribution_mint}`, { headers: { 'token': solscanApiKey } })).data.data;
     if (distributionTokenMetadata == null) throw new Error("Distribution token metadata not found");
 
     tokenData = {
-        name: tokenInfoResponse.name,
-        ticker: tokenInfoResponse.symbol,
+        name: tokenSolscanMetadata?.metadata?.name || tokenSolscanMetadata?.name || tokenInfoResponse.name,
+        ticker: tokenSolscanMetadata?.metadata?.symbol || tokenSolscanMetadata?.symbol || tokenInfoResponse.symbol,
         contractAddress: mintAccount.toString(),
         contractAddressShort: mintAccount.toString().slice(0, 4) + '...' + mintAccount.toString().slice(-4),
         poolAddress: poolResponse.pool_id,
-        profileImage: changeGateway(metadataResponse.image),
-        description: metadataResponse.description,
-        socialLinks: metadataResponse.attributes.socialLinks,
+        profileImage: tokenSolscanMetadata?.metadata?.image || tokenSolscanMetadata?.icon || metadataResponse.image,
+        description: tokenSolscanMetadata?.metadata?.description || tokenSolscanMetadata?.description || metadataResponse.description,
+        marketCap: tokenSolscanMetadata?.market_cap || 0,
+        holders: tokenSolscanMetadata?.holder || 0,
+        price: tokenSolscanMetadata?.price,
+        volume24h: tokenSolscanMetadata?.volume_24h || 0,
+        priceChange24h: tokenSolscanMetadata?.price_change_24h || 0,
+        totalSupply: tokenSolscanMetadata?.supply || 1000000000,
+        socialLinks: {
+            telegram: tokenSolscanMetadata?.metadata?.extensions?.telegram || tokenSolscanMetadata?.metadata?.telegram || metadataResponse?.extensions?.telegram,
+            website: tokenSolscanMetadata?.metadata?.extensions?.website || tokenSolscanMetadata?.metadata?.website || metadataResponse?.extensions?.website,
+            twitter: tokenSolscanMetadata?.metadata?.extensions?.twitter || tokenSolscanMetadata?.metadata?.twitter || metadataResponse?.extensions?.twitter
+        },
         taxInfo: {
             total: taxInfoResponse.fee_rate,
             burn: taxInfoResponse.burn_rate,
@@ -45,8 +63,8 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
             distribute: taxInfoResponse.distribution_rate,
             interval: taxInfoResponse.distribution_interval,
             distributionToken: {
-                symbol: distributionTokenMetadata?.symbol.replace(/\0/g, '').trim(),
-                name: distributionTokenMetadata?.name.replace(/\0/g, '').trim(),
+                symbol: distributionTokenMetadata?.symbol || distributionTokenMetadata?.metadata?.symbol,
+                name: distributionTokenMetadata?.name || distributionTokenMetadata?.metadata?.name,
                 address: taxInfoResponse.distribution_mint
             }
         },

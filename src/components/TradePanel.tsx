@@ -1,4 +1,4 @@
-import { PublicKey, Connection } from '@solana/web3.js';
+import { PublicKey, Connection, ComputeBudgetProgram } from '@solana/web3.js';
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownRight, Loader2, CheckCircle2 } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -82,6 +82,17 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
 
       const tx = new Transaction();
 
+      // Add Jito MEV fee instructions (keep existing)
+      const jitoTipIx = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: 1000
+      });
+      tx.add(jitoTipIx);
+
+      const priorityFeeIx = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 200000
+      });
+      tx.add(priorityFeeIx);
+
       // Only try to create distribution token account if it exists
       if (distributionTokenMintAddress) {
         const distributionTokenAccount = getAssociatedTokenAddressSync(
@@ -142,20 +153,58 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       }
 
       tx.feePayer = publicKey;
-      tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+
+      const latestBlockhash = await connection.getLatestBlockhash();
+      tx.recentBlockhash = latestBlockhash.blockhash;
 
       const signedTx = await signTransaction(tx);
       const signature = await connection.sendRawTransaction(signedTx.serialize());
 
-      const latestBlockHash = await connection.getLatestBlockhash();
-      const confirmation = await connection.confirmTransaction({
-        signature,
-        blockhash: latestBlockHash.blockhash,
-        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight
-      }, 'finalized');
+      // Modified confirmation logic with retries
+      const maxRetries = 3;
+      let retries = 0;
 
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      while (retries < maxRetries) {
+        try {
+          const response = await connection.getSignatureStatus(signature);
+
+          if (response && response.value) {
+            if (response.value.err) {
+              throw new Error(`Transaction failed: ${JSON.stringify(response.value.err)}`);
+            }
+
+            if (response.value.confirmationStatus === 'finalized') {
+              // Transaction confirmed successfully
+              break;
+            }
+          }
+
+          retries++;
+          if (retries === maxRetries) {
+            // Check one last time with longer timeout
+            await connection.confirmTransaction({
+              signature,
+              blockhash: latestBlockhash.blockhash,
+              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+            }, 'finalized');
+          } else {
+            // Wait before next retry
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        } catch (err) {
+          console.error('Confirmation attempt failed:', err);
+          retries++;
+          if (retries === maxRetries) {
+            // Even if we get a blockheight exceed error, the transaction might have succeeded
+            const response = await connection.getSignatureStatus(signature);
+            if (!response?.value?.err) {
+              // Transaction likely succeeded, continue with success flow
+              break;
+            }
+            throw new Error('Failed to confirm transaction. Please check your wallet or explorer for status.');
+          }
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
 
       // Clear form
@@ -167,7 +216,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       await updateBalances();
       await updatePrice();
 
-      // Set success message
       setSuccess({
         message: `Successfully ${tradeType === 'buy' ? 'bought' : 'sold'} ${amount} ${tradeType === 'buy' ? 'SOL' : tokenSymbol}`,
         signature

@@ -14,9 +14,9 @@ import {
 } from '@solana/web3.js';
 import bs58 from 'bs58';
 import axios from 'axios';
-import { calculateLaunchParameters, SOL_PARAMS } from '../utils/poolConfig';
+import { calculateLaunchParameters, SOL_PARAMS, getEstimatedTokenAmount } from '../utils/poolConfig';
 import { BN } from '@coral-xyz/anchor';
-import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { getMint, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 interface TokenDistribution {
   address: string;
   name: string;
@@ -55,6 +55,7 @@ function CreateCoinPage() {
   });
 
   const [maxSol, setMaxSol] = useState('0');
+  const [estimatedTokens, setEstimatedTokens] = useState<string>('0');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<TokenDistribution[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -265,13 +266,14 @@ function CreateCoinPage() {
 
     // 2. Create Pool Transaction
     const createPoolTx = new Transaction();
-    const createPoolIx = await buildCreatePoolInstruction(
+    const createPoolResult = await buildCreatePoolInstruction(
       minterPublicKey,
       mintKeypair.publicKey,
       new PublicKey("So11111111111111111111111111111111111111112"),
       poolParams.initialSqrtPriceX64,
       new BN(0)
     );
+    const createPoolIx = createPoolResult.instruction;
     createPoolTx.add(createPoolIx);
     createPoolTx.feePayer = minterPublicKey;
 
@@ -325,7 +327,10 @@ function CreateCoinPage() {
     jitoFeeTx.add(jitoFeeIx);
     jitoFeeTx.feePayer = minterPublicKey;
 
-    return [mintTx, createPoolTx, depositPoolTx, lockPoolTx, jitoFeeTx];
+    return {
+      transactions: [mintTx, createPoolTx, depositPoolTx, lockPoolTx, jitoFeeTx],
+      keys: createPoolResult.keys
+    };
   };
 
   const MAX_POLLING_TIME = 120000; // 2 minutes in milliseconds
@@ -381,15 +386,15 @@ function CreateCoinPage() {
         symbol: formData.ticker,
         description: formData.description,
         image: selectedFile,
+        extensions: {
+          telegram: formData.telegramLink || undefined,
+          website: formData.websiteLink || undefined,
+          twitter: formData.twitterLink || undefined,
+        },
         attributes: {
           transferTax: formData.transferTax,
           taxDistribution: formData.taxDistribution,
           glitchInterval: formData.glitchInterval,
-          socialLinks: {
-            telegram: formData.telegramLink || undefined,
-            website: formData.websiteLink || undefined,
-            twitter: formData.twitterLink || undefined,
-          }
         }
       };
 
@@ -430,7 +435,7 @@ function CreateCoinPage() {
 
       // Prepare all transactions
       setDeploymentStatus({ step: 'Preparing transactions...', status: 'pending' });
-      const allTransactions = await prepareAllTransactions(
+      const { transactions: allTransactions, keys } = await prepareAllTransactions(
         minterPublicKey,
         mintKeypair,
         tokenMetadata,
@@ -504,6 +509,50 @@ function CreateCoinPage() {
 
       await pollBundleStatus(bundleStatusPayload);
 
+      const decimal = (await getMint(connection, tokenRewardMint, 'confirmed', tokenRewardProgram)).decimals;
+
+      const tokenPayload = {
+        token_mint: mintKeypair.publicKey.toBase58(),
+        name: formData.name,
+        symbol: formData.ticker,
+        tax_rate: formData.transferTax * 100,
+        burn_rate: formData.taxDistribution.burn * 100,
+        distribution_rate: formData.taxDistribution.distribute * 100,
+        interval: formData.glitchInterval,
+        distribution_mint: tokenRewardMint,
+        distribution_mint_program: tokenRewardProgram.toBase58(),
+        distribution_mint_decimals: decimal,
+        uri: ipfsUrl,
+      }
+
+      const postTokenResult = await fetch(`https://api.moneyglitch.fun/v1/tokens`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(tokenPayload)
+        }
+      )
+
+      if (!postTokenResult.ok) {
+        console.error("Failed to post token to API");
+      }
+
+      const postPoolResult = await fetch(`https://api.moneyglitch.fun/v1/pools`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(keys)
+        }
+      );
+
+      if (!postPoolResult.ok) {
+        console.error('Failed to post pool to API');
+      }
+
       navigate(`/token/${mintKeypair.publicKey.toBase58()}`);
     } catch (error) {
       console.error('Deployment error:', error);
@@ -534,6 +583,28 @@ function CreateCoinPage() {
     { value: 2592000, label: '30 Days' }
   ];
 
+  const calculateEstimatedTokens = (solAmount: string) => {
+    try {
+      const solAmountBN = new BN(Number(solAmount) * 10 ** 9); // Convert to lamports
+      const tokenAmount = getEstimatedTokenAmount(SOL_PARAMS, solAmountBN);
+      // Format the token amount to a readable string with 2 decimal places
+      const formattedAmount = (tokenAmount.toNumber() / 10 ** 6).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      setEstimatedTokens(formattedAmount);
+    } catch (error) {
+      console.error('Error calculating estimated tokens:', error);
+      setEstimatedTokens('0');
+    }
+  };
+
+  const handleMaxSolChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMaxSol(value);
+    calculateEstimatedTokens(value);
+  };
+
   if (step === 'initial-buy') {
     return (
       <div className="max-w-2xl mx-auto terminal-card p-6">
@@ -548,19 +619,22 @@ function CreateCoinPage() {
                 type="number"
                 id="depositSOLAmount"
                 value={maxSol}
-                onChange={(e) => {
-                  setMaxSol(e.target.value);
-                }}
+                onChange={handleMaxSolChange}
                 min="0"
                 max="100"
                 step="0.1"
                 className="terminal-input w-full px-3 py-2"
                 required
               />
-              <p className="text-xs opacity-70 mt-2">
-                This amount will be set as the maximum SOL deposit for the initial buy.
-                Maximum: 100 SOL
-              </p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs opacity-70">
+                  This amount will be set as the maximum SOL deposit for the initial buy.
+                  Maximum: 100 SOL
+                </p>
+                <p className="text-sm text-[#00ff00]">
+                  Estimated token amount: {estimatedTokens} {formData.ticker || 'tokens'}
+                </p>
+              </div>
             </div>
 
             <div className="bg-black/30 p-4 rounded border border-[#00ff00]/20">

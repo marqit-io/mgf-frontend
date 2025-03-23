@@ -28,6 +28,41 @@ export const USDC_PARAMS: MarketParams = {
     endPrice: new Decimal(2),
 }
 
+export function getEstimatedTokenAmount(
+    market: MarketParams,
+    minterQuoteTokenAmount: BN,
+): BN {
+    const { quoteTokenDecimals, baseTokenDecimals, tickSpacing, startPrice, endPrice, baseSupply } = market;
+    const poolBaseTokenAmount = baseSupply;
+    const initialTick = TickMath.getTickWithPriceAndTickspacing(startPrice, tickSpacing, baseTokenDecimals, quoteTokenDecimals);
+    const initialSqrtPriceX64 = SqrtPriceMath.getSqrtPriceX64FromTick(initialTick);
+    const minTick = TickMath.getTickWithPriceAndTickspacing(startPrice, tickSpacing, baseTokenDecimals, quoteTokenDecimals);
+    const maxTick = TickMath.getTickWithPriceAndTickspacing(endPrice, tickSpacing, baseTokenDecimals, quoteTokenDecimals);
+    const minSqrtPriceX64 = SqrtPriceMath.getSqrtPriceX64FromTick(minTick);
+    const maxSqrtPriceX64 = SqrtPriceMath.getSqrtPriceX64FromTick(maxTick);
+    const initialLiquidityAmount = LiquidityMath.getLiquidityFromTokenAmounts(
+        initialSqrtPriceX64,
+        minSqrtPriceX64,
+        maxSqrtPriceX64,
+        poolBaseTokenAmount,
+        new BN(0)
+    );
+    const adjustedSqrtPriceX64 = SqrtPriceMath.getNextSqrtPriceX64FromInput(
+        initialSqrtPriceX64,
+        initialLiquidityAmount,
+        minterQuoteTokenAmount,
+        false
+    );
+    const baseTokensExchanged = LiquidityMath.getTokenAmountAFromLiquidity(
+        initialSqrtPriceX64,
+        adjustedSqrtPriceX64,
+        initialLiquidityAmount,
+        false
+    );
+
+    return baseTokensExchanged;
+}
+
 export function calculateLaunchParameters(
     market: MarketParams,
     baseMint: PublicKey,
