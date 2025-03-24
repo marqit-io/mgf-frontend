@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Zap, Timer, Gift, Flame, Sparkles, ArrowUpRight, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { getTotalStats } from '../utils/getData';
-import { MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
+import { fetchMintTransactions, MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
 
 function GlitchVisionPage() {
   const [liveFeed, setLiveFeed] = useState<MintInfo[]>([]);
@@ -10,6 +10,7 @@ function GlitchVisionPage() {
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [totalStats, setTotalStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [isLiveFeedLoading, setIsLiveFeedLoading] = useState(true);
 
   const filterTypes = [
     { value: 'ALL', label: 'ALL', icon: Sparkles, color: 'text-[#00ff00]' },
@@ -26,6 +27,22 @@ function GlitchVisionPage() {
       maximumFractionDigits: 2
     }).format(value);
   };
+
+  useEffect(() => {
+    const fetchLatestMints = async () => {
+      try {
+        setIsLiveFeedLoading(true);
+        const mints = await fetchMintTransactions(30, 0);
+        setLiveFeed(mints);
+      } catch (error) {
+        console.error('Error fetching mint transactions', error);
+      } finally {
+        setIsLiveFeedLoading(false);
+      }
+    }
+
+    fetchLatestMints();
+  }, []);
 
   useEffect(() => {
     const unSubscribe = subscribeToTokenMints((mint: MintInfo) => {
@@ -285,37 +302,48 @@ function GlitchVisionPage() {
 
             {/* Live Feed */}
             <div className="flex-grow h-[calc(100vh-280px)] overflow-y-auto pr-2 custom-scrollbar">
-              <div className="space-y-2">
-                {filterTokens(liveFeed).map((item) => (
-                  <div
-                    key={item.mintAddress}
-                    className="flex items-start gap-3 p-3 border-t border-[#00ff00]/20 first:border-t-0 hover:bg-[#00ff00]/5 transition-colors cursor-pointer bg-black/30 rounded"
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-[#00ff00]/30">
-                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                    </div>
-
-                    <div className="flex-grow min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Zap size={14} className="text-[#00ff00] flex-shrink-0" />
-                        <span className="font-semibold truncate">{item.name}</span>
-                        <span className="text-xs opacity-70">({item.symbol})</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-sm whitespace-nowrap overflow-hidden">
-                        <Timer size={14} className="text-[#00ff00] flex-shrink-0" />
-                        <span className="opacity-70">Tax:</span>
-                        {getTaxDistributionLabel({ enabled: item.taxRate != 0, total: item.taxRate, distribution: { burn: item.burnRate, reward: item.distributionRate } })}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-end text-xs">
-                      <span className="opacity-70 whitespace-nowrap">{formatTime(item.timestamp)}</span>
-                      <span className="font-mono">{item.mintAddress}</span>
-                    </div>
+              {isLiveFeedLoading ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-[#00ff00] text-lg flex items-center gap-2">
+                    <span className="animate-[blink_1s_ease-in-out_infinite]">.</span>
+                    <span className="animate-[blink_1s_ease-in-out_0.2s_infinite]">.</span>
+                    <span className="animate-[blink_1s_ease-in-out_0.4s_infinite]">.</span>
+                    <span className="ml-2">Loading live feed</span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filterTokens(liveFeed).map((item) => (
+                    <div
+                      key={item.mintAddress}
+                      className="flex items-start gap-3 p-3 border-t border-[#00ff00]/20 first:border-t-0 hover:bg-[#00ff00]/5 transition-colors cursor-pointer bg-black/30 rounded"
+                    >
+                      <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-[#00ff00]/30">
+                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      </div>
+
+                      <div className="flex-grow min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Zap size={14} className="text-[#00ff00] flex-shrink-0" />
+                          <span className="font-semibold truncate">{item.name}</span>
+                          <span className="text-xs opacity-70">({item.symbol})</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm whitespace-nowrap overflow-hidden">
+                          <Timer size={14} className="text-[#00ff00] flex-shrink-0" />
+                          <span className="opacity-70">Tax:</span>
+                          {getTaxDistributionLabel({ enabled: item.taxRate != 0, total: item.taxRate, distribution: { burn: item.burnRate, reward: item.distributionRate } })}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end text-xs">
+                        <span className="opacity-70 whitespace-nowrap">{formatTime(item.timestamp)}</span>
+                        <span className="font-mono">{item.mintAddress}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

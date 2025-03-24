@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { LineChart, TrendingUp as TrendUp, TrendingDown, Users, Flame, Gift, Timer, ArrowUpRight, ArrowDownRight, Copy, Check, Sparkles, Globe, ExternalLink, Share } from 'lucide-react';
+import { TrendingUp as TrendUp, TrendingDown, Users, ArrowUpRight, ArrowDownRight, Copy, Check, Globe, ExternalLink, Share } from 'lucide-react';
 import { PriceChartWidget } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
 import { PublicKey } from '@solana/web3.js';
@@ -11,6 +11,7 @@ import { RewardsCalculator } from '../components/RewardsCalculator';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { XLogo } from '../components/XLogo';
 import { TelegramLogo } from '../components/TelegramLogo';
+import { TokenStatsOverview } from '../components/TokenStatsOverview';
 interface Transaction {
   id: string;
   timestamp: string;
@@ -32,18 +33,6 @@ interface Holder {
 }
 
 const TRANSACTION_LIST_SIZE = 10;
-const createEmptyTransaction = (index: number): Transaction => ({
-  id: `empty-${index}`,
-  timestamp: '',
-  type: 'BUY',
-  amountUsd: 0,
-  amountSol: 0,
-  txHash: ''
-});
-
-const initialTransactions = Array(TRANSACTION_LIST_SIZE)
-  .fill(null)
-  .map((_, index) => createEmptyTransaction(index));
 
 // Add this component for skeleton loading
 const SkeletonBar = ({ className = "" }: { className?: string }) => (
@@ -59,14 +48,38 @@ const formatPrice = (price: number) => {
   return `$${price.toFixed(2)}`; // Original format for regular numbers
 }
 
-const formatInterval = (seconds: number | null | undefined): string => {
-  if (!seconds) return '--';
+// Add this new component at the top of the file
+const LoadingScreen = () => (
+  <div className="w-full min-h-screen p-2 sm:p-4 flex items-center justify-center">
+    <div className="terminal-card p-8 w-full max-w-md">
+      <div className="space-y-4">
+        {/* Loading message */}
+        <div className="text-[#00ff00] text-lg text-center mb-4">
+          Fetching token data...
+        </div>
 
-  if (seconds < 60) return `${seconds} Seconds`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} Minutes`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} Hours`;
-  return `${Math.floor(seconds / 86400)} Days`;
-};
+        {/* Progress bar container */}
+        <div className="w-full h-2 bg-[#00ff00]/20 rounded-full overflow-hidden">
+          {/* Animated progress bar */}
+          <div
+            className="h-full bg-[#00ff00] rounded-full animate-loading-progress"
+            style={{
+              width: '100%',
+              animation: 'loading 2s ease-in-out infinite'
+            }}
+          />
+        </div>
+
+        {/* Loading dots */}
+        <div className="text-center text-[#00ff00]/50">
+          <span className="animate-[blink_1s_ease-in-out_infinite]">.</span>
+          <span className="animate-[blink_1s_ease-in-out_0.2s_infinite]">.</span>
+          <span className="animate-[blink_1s_ease-in-out_0.4s_infinite]">.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 function TokenProfilePage() {
   const { tokenId } = useParams();
@@ -75,7 +88,7 @@ function TokenProfilePage() {
   const { publicKey, connected } = useWallet();
   const [tokenAddress, setTokenAddress] = useState<PublicKey | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'transactions' | 'holders'>('transactions');
   const [tokenData, setTokenData] = useState<any>(location.state?.initialTokenData || null);
@@ -94,15 +107,6 @@ function TokenProfilePage() {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy address:', err);
-    }
-  };
-
-  const getDistributionColor = (type: string) => {
-    switch (type) {
-      case 'BURN': return 'text-red-400';
-      case 'REWARD': return 'text-green-400';
-      case 'MIX': return 'text-yellow-400';
-      default: return 'text-[#00ff00]';
     }
   };
 
@@ -277,15 +281,9 @@ function TokenProfilePage() {
     return new Intl.NumberFormat('en-US').format(balance);
   };
 
-  // Add loading state check in the render
+  // Replace the current loading return statement with this:
   if (isLoading) {
-    return (
-      <div className="w-full min-h-screen p-2 sm:p-4 flex items-center justify-center">
-        <div className="terminal-card p-8">
-          <div className="text-[#00ff00] text-lg">Loading token data...</div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (error) {
@@ -477,133 +475,25 @@ function TokenProfilePage() {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-        <div className="terminal-card p-4">
-          <div className="flex items-center gap-3">
-            <LineChart size={18} />
-            <div className="flex flex-col">
-              <span className="text-sm opacity-70">Market Cap</span>
-              {tokenData ? (
-                <span className="text-lg">{formatCurrency(tokenData.marketCap)}</span>
-              ) : (
-                <SkeletonBar className="h-6 w-24 mt-1" />
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="terminal-card p-4">
-          <div className="flex items-center gap-3">
-            <Users size={18} />
-            <div className="flex flex-col">
-              <span className="text-sm opacity-70">Holders</span>
-              {tokenData ? (
-                <span className="text-lg">{tokenData.holders}</span>
-              ) : (
-                <SkeletonBar className="h-6 w-20 mt-1" />
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="terminal-card p-4">
-          <div className="flex items-center gap-3">
-            <LineChart size={18} />
-            <div className="flex flex-col">
-              <span className="text-sm opacity-70">24h Volume</span>
-              {tokenData ? (
-                <span className="text-lg">{formatCurrency(tokenData.volume24h)}</span>
-              ) : (
-                <SkeletonBar className="h-6 w-28 mt-1" />
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="terminal-card p-4">
-          <div className="flex items-center gap-3">
-            <Sparkles size={18} />
-            <div className="flex flex-col">
-              <span className="text-sm opacity-70">GLITCHED</span>
-              {tokenData ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-lg text-[#00ff00]">{formatCurrency(tokenData.glitched)}</span>
-                  <span className={`text-xs ${getDistributionColor(tokenData.glitchType)}`}>
-                    {tokenData.glitchType}
-                  </span>
-                </div>
-              ) : (
-                <SkeletonBar className="h-6 w-32 mt-1" />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tax Information */}
-      <div className="terminal-card p-4 sm:p-6 mb-4">
-        <h2 className="terminal-header mb-4 sm:mb-6">&gt; TAX_CONFIGURATION</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="terminal-card bg-black/30 p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Timer size={16} className="text-[#00ff00]" />
-                <span className="text-sm">Total Tax</span>
-              </div>
-              <span className="text-[#00ff00] font-mono">{`${tokenData?.taxInfo?.total ? tokenData?.taxInfo?.total / 100 + "%" : '--'}`}</span>
-            </div>
-          </div>
-
-          <div className="terminal-card bg-black/30 p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flame size={16} className="text-red-400" />
-                <span className="text-sm">Burn Rate</span>
-              </div>
-              <span className="text-red-400 font-mono">{`${tokenData?.taxInfo?.burn ? tokenData?.taxInfo?.burn / 100 + "%" : '--'}`}</span>
-            </div>
-          </div>
-
-          <div className="terminal-card bg-black/30 p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Gift size={16} className="text-green-400" />
-                <span className="text-sm">Reward Rate</span>
-              </div>
-              <span className="text-green-400 font-mono">{`${tokenData?.taxInfo?.distribute ? tokenData?.taxInfo?.distribute / 100 + "%" : '--'}`}</span>
-            </div>
-          </div>
-
-          <div className="terminal-card bg-black/30 p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Timer size={16} className="text-[#00ff00]" />
-                <span className="text-sm">Interval</span>
-              </div>
-              <span className="text-[#00ff00] font-mono">{formatInterval(tokenData?.taxInfo?.interval)}</span>
-            </div>
-          </div>
-
-          {/* Distribution Token */}
-          {tokenData?.taxInfo?.distributionToken && (
-            <div className="terminal-card bg-black/30 p-3 sm:col-span-2 lg:col-span-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Gift size={16} className="text-green-400" />
-                  <span className="text-sm">Distribution Token</span>
-                </div>
-                <a
-                  href={getSolscanTokenUrl(tokenData?.taxInfo?.distributionToken?.address)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:text-[#00ff00] transition-colors"
-                >
-                  <span className="font-mono">{tokenData?.taxInfo?.distributionToken?.symbol || '--'}</span>
-                  <span className="text-sm opacity-70">({tokenData?.taxInfo?.distributionToken?.name || '--'})</span>
-                  <ExternalLink size={12} className="opacity-50" />
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Stats Overview */}
+      <div className="mb-4">
+        <TokenStatsOverview
+          stats={{
+            marketCap: tokenData.marketCap,
+            holders: tokenData.holders,
+            volume24h: tokenData.volume24h,
+            glitched: tokenData.glitched,
+            glitchType: tokenData.glitchType
+          }}
+          taxInfo={{
+            total: tokenData.taxInfo.total,
+            burn: tokenData.taxInfo.burn,
+            distribute: tokenData.taxInfo.distribute,
+            interval: tokenData.interval,
+            distributionToken: tokenData.taxInfo.distributionToken,
+            distributionWallet: "So11111111111111111111111111111111111111112"
+          }}
+        />
       </div>
 
       {/* Rewards Calculator Section */}

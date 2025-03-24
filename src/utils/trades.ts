@@ -83,9 +83,6 @@ function parseTokenTransaction(
     tx: VersionedTransactionResponse,
     tokenMintAddress: string
 ): TradeInfo | null {
-    if (tx.transaction.signatures[0].toString() == "iaGHNhDpBgGa9rKHXzyvYzM8AjmiKySRyhyEu7AXMLHFyPN4KjgyRHqyLaz3dvm6sCNepVP5PNCg4xiGLvD9kW4") {
-        debugger;
-    }
     try {
         const swapInstructions = getRaydiumSwapInstructions(tx);
         if (!swapInstructions || swapInstructions.length === 0) return null;
@@ -95,21 +92,38 @@ function parseTokenTransaction(
         const feePayer = tx.transaction.message.staticAccountKeys[0].toString();
 
         // Get token balance changes
-        const tokenTransfers = postTokenBalances
+        const tokenTransfersFromPost = postTokenBalances
             .filter(post => post.mint === tokenMintAddress && post.owner === feePayer)
             .map(post => {
                 const pre = preTokenBalances.find(pre =>
                     pre.accountIndex === post.accountIndex &&
                     pre.mint === post.mint
                 );
-                if (!pre) return null;
                 return {
-                    amount: (post.uiTokenAmount.uiAmount || 0) - (pre.uiTokenAmount.uiAmount || 0),
+                    amount: (post.uiTokenAmount.uiAmount || 0) - (pre ? pre.uiTokenAmount.uiAmount || 0 : 0),
                     tokenMint: post.mint,
                     owner: post.owner
                 };
             })
             .filter(Boolean);
+
+        const tokenTransfersFromPre = preTokenBalances
+            .filter(pre => pre.mint === tokenMintAddress && pre.owner === feePayer)
+            .map(pre => {
+                const post = postTokenBalances.find(post =>
+                    post.accountIndex === pre.accountIndex &&
+                    post.mint === pre.mint
+                );
+                if (post) return null;  //Precessed on previous step
+                return {
+                    amount: -(pre.uiTokenAmount.uiAmount || 0),
+                    tokenMint: pre.mint,
+                    owner: pre.owner
+                };
+            })
+            .filter(Boolean);
+
+        const tokenTransfers = [...tokenTransfersFromPost, ...tokenTransfersFromPre];
 
         // Get SOL/WSOL balance changes
         const wsolTransfers = postTokenBalances
@@ -144,7 +158,7 @@ function parseTokenTransaction(
             id: tx.transaction.signatures[0],
             timestamp: tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : new Date().toISOString(),
             type: mainTokenTransfer.amount > 0 ? 'BUY' : 'SELL',
-            amountUsd: Math.abs(mainTokenTransfer.amount),
+            amountUsd: 0,
             amountSol: mainWsolTransfer ? Math.abs(mainWsolTransfer.amount) : tx.meta?.postBalances ? Math.abs(tx.meta?.postBalances[0] - tx.meta?.preBalances[0]) / 10 ** 9 : 0,
             txHash: tx.transaction.signatures[0],
             price
@@ -164,9 +178,9 @@ export async function fetchRecentTrades(tokenMintAddress: string): Promise<Trade
         if (!tx) return null;
         return parseTokenTransaction(tx, tokenMintAddress);
     }));
-    const priceInfo = await getTokenPrice(tokenMintAddress);
+    const solPrice = await getSolPrice();
     return Promise.all(recentTrades.filter(trade => trade !== null).map(async trade => {
-        trade.amountUsd *= priceInfo.price;
+        trade.amountUsd = trade.amountSol * solPrice;
         return trade;
     }));
 }
@@ -201,8 +215,8 @@ export function subscribeToTokenTrades(
                 if (tx) {
                     const tradeInfo = parseTokenTransaction(tx, tokenMintAddress);
                     if (tradeInfo) {
-                        const priceInfo = await getTokenPrice(tokenMintAddress);
-                        tradeInfo.amountUsd *= priceInfo.price;
+                        const solPrice = await getSolPrice();
+                        tradeInfo.amountUsd = tradeInfo.amountSol * solPrice;
 
                         onTrade(tradeInfo);
                     }

@@ -1018,8 +1018,11 @@ function CreateCoinPage() {
                                     >
                                       <div className="flex items-center justify-between">
                                         <div>
-                                          <span className="font-semibold">{token.symbol}</span>
-                                          <span className="ml-2 text-sm opacity-70">{token.name}</span>
+                                          <span className="font-semibold">{token.name}</span>
+                                          <span className="ml-2 text-xs opacity-70">{token.symbol}</span>
+                                          <span className="ml-2 text-sm opacity-70">
+                                            {token.address.slice(0, 4)}...{token.address.slice(-4)}
+                                          </span>
                                         </div>
                                         <Plus size={14} className="text-[#00ff00]" />
                                       </div>

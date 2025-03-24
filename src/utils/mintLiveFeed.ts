@@ -1,5 +1,6 @@
 import { Connection, PublicKey, VersionedTransactionResponse } from "@solana/web3.js";
 import { getTokenMetadata } from "@solana/spl-token"
+import axios from "axios";
 import { MgfMatrix as IDL } from "./idl";
 
 export type MintInfo = {
@@ -102,7 +103,7 @@ const parseMintTokenTransaction = async (tx: VersionedTransactionResponse) => {
     const nameLen = dataView.getUint32(offset, true);
     offset += 4 + nameLen;
     offset += 1;
-    const transferFeeBps = dataView.getInt16(offset, true);  // true for little-endian
+    const transferFeeBps = dataView.getInt16(offset, true);
     offset += 2;
     const distributeFeeBps = dataView.getInt16(offset, true);
     offset += 2;
@@ -134,3 +135,28 @@ const parseMintTokenTransaction = async (tx: VersionedTransactionResponse) => {
         timestamp: tx.blockTime ? tx.blockTime * 1000 : Date.now()
     };
 };
+
+
+export const fetchMintTransactions = async (limit: number, offset: number) => {
+    const tokensData = (await axios.get(`https://api.moneyglitch.fun/v1/tokens?limit=${limit}&offset=${offset}`)).data;
+    const mintTransactionInfos: MintInfo[] = (await Promise.all(tokensData.map(async (token: any) => {
+        let metadata, feeData;
+        try {
+            metadata = (await axios.get(token.uri)).data;
+            feeData = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${token.mint}`)).data;
+        } catch {
+            return null;
+        }
+        return {
+            mintAddress: token.mint,
+            name: token.name,
+            symbol: token.symbol,
+            imageUrl: metadata.image,
+            taxRate: feeData.fee_rate / 100,
+            distributionRate: feeData.distribution_rate / 100,
+            burnRate: feeData.burn_rate / 100,
+            timestamp: new Date(token.minted).getUTCMilliseconds()
+        }
+    }))).filter(Boolean);
+    return mintTransactionInfos;
+}
