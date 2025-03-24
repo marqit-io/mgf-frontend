@@ -252,7 +252,7 @@ function CreateCoinPage() {
     const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
       units: 350000,
     });
-    const mintTokenIx = await buildMintTokenInstruction(
+    const mintTokenResult = await buildMintTokenInstruction(
       minterPublicKey,
       mintKeypair.publicKey,
       tokenMetadata,
@@ -260,6 +260,7 @@ function CreateCoinPage() {
       tokenRewardMint,
       tokenRewardProgram
     );
+    const mintTokenIx = mintTokenResult.instruction;
     mintTx.add(mintTokenIx);
     mintTx.add(computeBudgetIx);
     mintTx.feePayer = minterPublicKey;
@@ -329,7 +330,9 @@ function CreateCoinPage() {
 
     return {
       transactions: [mintTx, createPoolTx, depositPoolTx, lockPoolTx, jitoFeeTx],
-      keys: createPoolResult.keys
+      keys: createPoolResult.keys,
+      distributionWallet: mintTokenResult.distributionWallet,
+      burnWallet: mintTokenResult.burnWallet
     };
   };
 
@@ -455,7 +458,7 @@ function CreateCoinPage() {
 
       // Prepare all transactions
       setDeploymentStatus({ step: 'Preparing transactions...', status: 'pending' });
-      const { transactions: allTransactions, keys } = await prepareAllTransactions(
+      const { transactions: allTransactions, keys, distributionWallet, burnWallet } = await prepareAllTransactions(
         minterPublicKey,
         mintKeypair,
         tokenMetadata,
@@ -512,6 +515,8 @@ function CreateCoinPage() {
         distribution_mint: tokenRewardMint,
         distribution_mint_program: tokenRewardProgram.toBase58(),
         distribution_mint_decimals: decimal,
+        distribution_wallet: distributionWallet,
+        burn_wallet: burnWallet,
         uri: ipfsUrl,
       }
 

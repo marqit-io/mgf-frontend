@@ -96,8 +96,7 @@ export async function buildMintTokenInstruction(
         ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
-    // Build mint token transaction
-    return mgfProgram.methods
+    const instruction = await mgfProgram.methods
         .mintToken(metadata, tokenFeeParams)
         .accounts({
             minter: minter,
@@ -120,7 +119,14 @@ export async function buildMintTokenInstruction(
             executorProgram: EXECUTOR_PROGRAM_ID,
             rent: SYSVAR_RENT_PUBKEY,
         })
-        .instruction();
+        .instruction()
+
+    // Build mint token transaction
+    return {
+        distributionWallet: distributionTokenAccount,
+        burnWallet: tokenCollectionAccount,
+        instruction: instruction
+    }
 }
 
 

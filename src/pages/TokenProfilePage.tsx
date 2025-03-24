@@ -491,7 +491,8 @@ function TokenProfilePage() {
             distribute: tokenData.taxInfo.distribute,
             interval: tokenData.interval,
             distributionToken: tokenData.taxInfo.distributionToken,
-            distributionWallet: tokenData.taxInfo.distributionWallet
+            distributionWallet: tokenData.taxInfo.distributionWallet,
+            burnWallet: tokenData.taxInfo.burnWallet
           }}
         />
       </div>

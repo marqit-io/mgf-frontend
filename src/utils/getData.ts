@@ -67,7 +67,8 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
                 name: distributionTokenMetadata?.name || distributionTokenMetadata?.metadata?.name,
                 address: taxInfoResponse.distribution_mint
             },
-            distributionWallet: taxInfoResponse.distribution_wallet
+            distributionWallet: taxInfoResponse.distribution_wallet,
+            burnWallet: taxInfoResponse.burn_wallet
         },
         glitchInfo: glitchInfo.distributed_value + glitchInfo.burned_value
     }
