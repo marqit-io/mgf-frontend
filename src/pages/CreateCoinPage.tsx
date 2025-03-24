@@ -331,8 +331,7 @@ function CreateCoinPage() {
     return {
       transactions: [mintTx, createPoolTx, depositPoolTx, lockPoolTx, jitoFeeTx],
       keys: createPoolResult.keys,
-      distributionWallet: mintTokenResult.distributionWallet,
-      burnWallet: mintTokenResult.burnWallet
+      distributionWallet: mintTokenResult.distributionWallet
     };
   };
 
@@ -458,7 +457,7 @@ function CreateCoinPage() {
 
       // Prepare all transactions
       setDeploymentStatus({ step: 'Preparing transactions...', status: 'pending' });
-      const { transactions: allTransactions, keys, distributionWallet, burnWallet } = await prepareAllTransactions(
+      const { transactions: allTransactions, keys, distributionWallet } = await prepareAllTransactions(
         minterPublicKey,
         mintKeypair,
         tokenMetadata,
@@ -516,7 +515,6 @@ function CreateCoinPage() {
         distribution_mint_program: tokenRewardProgram.toBase58(),
         distribution_mint_decimals: decimal,
         distribution_wallet: distributionWallet,
-        burn_wallet: burnWallet,
         uri: ipfsUrl,
       }
 

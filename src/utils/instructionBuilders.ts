@@ -124,7 +124,6 @@ export async function buildMintTokenInstruction(
     // Build mint token transaction
     return {
         distributionWallet: distributionTokenAccount,
-        burnWallet: tokenCollectionAccount,
         instruction: instruction
     }
 }
