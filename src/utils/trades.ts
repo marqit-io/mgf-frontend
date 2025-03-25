@@ -187,8 +187,8 @@ export async function fetchRecentTrades(tokenMintAddress: string, poolAddress: s
                 id: trade.attributes.tx_hash,
                 timestamp: trade.attributes.block_timestamp,
                 type: trade.attributes.kind.toUpperCase(),
-                amountUsd: Number(trade.volume_in_usd),
-                amountSol: Number(trade.attributes.from_token_amount),
+                amountUsd: Number(trade.attributes.volume_in_usd),
+                amountSol: trade.attributes.kind == 'buy' ? Number(trade.attributes.from_token_amount) : Number(trade.attributes.to_token_amount),
                 txHash: trade.attributes.tx_hash,
                 price: Number(trade.price_to_in_usd)
             }));
