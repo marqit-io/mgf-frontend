@@ -1,6 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import axios from 'axios';
+import { getTokenPrice } from './trades';
 
 interface Holder {
     address: string;
@@ -79,6 +80,11 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
         throw new Error("Distribution token metadata not found");
     }
 
+    let price;
+    if (!tokenSolscanMetadata?.price) {
+        price = await getTokenPrice(mintAccount.toString());
+    }
+
     tokenData = {
         name: tokenSolscanMetadata?.metadata?.name || tokenSolscanMetadata?.name || tokenInfoResponse.name,
         ticker: tokenSolscanMetadata?.metadata?.symbol || tokenSolscanMetadata?.symbol || tokenInfoResponse.symbol,
@@ -89,7 +95,7 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
         description: tokenSolscanMetadata?.metadata?.description || tokenSolscanMetadata?.description || metadataResponse.description,
         marketCap: tokenSolscanMetadata?.market_cap || 0,
         holders: tokenSolscanMetadata?.holder || 0,
-        price: tokenSolscanMetadata?.price,
+        price: tokenSolscanMetadata?.price || price?.price,
         volume24h: tokenSolscanMetadata?.volume_24h || 0,
         priceChange24h: tokenSolscanMetadata?.price_change_24h || 0,
         totalSupply: tokenSolscanMetadata?.supply || 1000000000,
@@ -277,11 +283,11 @@ export const getTopGlitchTokens = async () => {
 
                 // Fetch additional data with retry
                 const [glitchInfo, distributionTokenMetadataResponse] = await Promise.all([
-                    fetchWithRetry(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`),
+                    fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`),
                     fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)
                 ]);
 
-                if (!distributionTokenMetadataResponse?.data) {
+                if (!distributionTokenMetadataResponse?.mint) {
                     throw new Error("Distribution token metadata not found");
                 }
 
