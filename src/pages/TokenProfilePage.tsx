@@ -12,6 +12,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { XLogo } from '../components/XLogo';
 import { TelegramLogo } from '../components/TelegramLogo';
 import { TokenStatsOverview } from '../components/TokenStatsOverview';
+
 interface Transaction {
   id: string;
   timestamp: string;
@@ -76,6 +77,38 @@ const LoadingScreen = () => (
           <span className="animate-[blink_1s_ease-in-out_0.2s_infinite]">.</span>
           <span className="animate-[blink_1s_ease-in-out_0.4s_infinite]">.</span>
         </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Add this new component near the top of the file
+const ErrorScreen = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
+  <div className="w-full min-h-screen p-2 sm:p-4 flex items-center justify-center">
+    <div className="terminal-card p-8 w-full max-w-md">
+      <div className="space-y-6 text-center">
+        <div className="text-red-400 text-lg mb-4">
+          {message}
+        </div>
+        <button
+          onClick={onRetry}
+          className="terminal-button px-6 py-3 hover:bg-[#00ff00]/10 flex items-center gap-2 mx-auto"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          Refresh
+        </button>
       </div>
     </div>
   </div>
@@ -170,29 +203,42 @@ function TokenProfilePage() {
     }
   }, [tokenId, navigate]);
 
+  const fetchTokenData = async () => {
+    if (!tokenAddress) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await getTokenDataFromMintAddress(tokenAddress);
+      if (!data) {
+        throw new Error('TOKEN_NOT_FOUND');
+      }
+      setTokenData(data);
+      setPrice(data.price);
+
+      const holdersData = await getTokenTopHolders(tokenAddress, data.totalSupply, data.price);
+      if (holdersData) {
+        setHolders(holdersData);
+      }
+    } catch (error: any) {
+      console.error('Error fetching token data:', error);
+      // Set appropriate error message based on the error
+      if (error.message === 'TOKEN_NOT_FOUND') {
+        setError('Token not found. Please check the token address.');
+      } else if (error.message?.includes('Failed to fetch')) {
+        setError('Connection failed. Please check your internet connection.');
+      } else {
+        setError('Failed to load token data. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (tokenAddress) {
-      setIsLoading(true); // Set loading to true when starting to fetch
-      getTokenDataFromMintAddress(tokenAddress)
-        .then(data => {
-          if (data) {  // Add null check here
-            setTokenData(data);
-            return getTokenTopHolders(tokenAddress, data.totalSupply, data.price);
-          }
-          throw new Error('Failed to fetch token data');
-        })
-        .then(holders => {
-          if (holders) {  // Add null check here
-            setHolders(holders);
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching token data:', error);
-          setError('Failed to load token data');
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      fetchTokenData();
     }
   }, [tokenAddress]);
 
@@ -281,22 +327,14 @@ function TokenProfilePage() {
     return new Intl.NumberFormat('en-US').format(balance);
   };
 
-  // Replace the current loading return statement with this:
   if (isLoading) {
     return <LoadingScreen />;
   }
 
   if (error) {
-    return (
-      <div className="w-full min-h-screen p-2 sm:p-4 flex items-center justify-center">
-        <div className="terminal-card p-8">
-          <div className="text-red-400 text-lg">Error: {error}</div>
-        </div>
-      </div>
-    );
+    return <ErrorScreen message={error} onRetry={fetchTokenData} />;
   }
 
-  // Add null check for tokenData
   if (!tokenData) {
     return (
       <div className="w-full min-h-screen p-2 sm:p-4 flex items-center justify-center">
@@ -446,7 +484,7 @@ function TokenProfilePage() {
           {/* Chart */}
           <div className="lg:col-span-2">
             {tokenData ? (
-              <PriceChartWidget tokenAddress={tokenAddress?.toString() || ''} />
+              <PriceChartWidget poolAddress={tokenData?.poolAddress.toString() || ''} />
             ) : (
               <div className="w-full h-full bg-white/10 animate-pulse" />
             )}
@@ -503,7 +541,7 @@ function TokenProfilePage() {
           <RewardsCalculator
             distributionFee={Number(tokenData.taxInfo.distribute)}
             volume24h={tokenData.volume24h || 0}
-            totalSupply={tokenData.totalSupply || 1000000000}
+            totalSupply={tokenData.totalSupply / 10 ** 6 || 1000000000}
             userTokenBalance={tokenBalance}
             userTokenSymbol={tokenData.ticker}
             distributionTokenSymbol={tokenData.taxInfo.distributionToken.symbol || 'Distribution Token'}

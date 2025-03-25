@@ -118,12 +118,12 @@ function HomePage() {
     }
   };
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number, fractionDigits: number = 2) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: fractionDigits
     }).format(value);
   };
 
@@ -160,6 +160,7 @@ function HomePage() {
   };
 
   const formatTime = (timestamp: number) => {
+    console.log(timestamp);
     const date = new Date(timestamp);
     return date.toLocaleTimeString();
   };
@@ -414,7 +415,7 @@ function HomePage() {
                         onClick={() => handleTokenClick(token.id)}
                       >
                         <td className="py-3 text-sm">{token.name}</td>
-                        <td className="py-3 text-sm">{formatCurrency(token.price)}</td>
+                        <td className="py-3 text-sm">{formatCurrency(token.price, 8)}</td>
                         <td className="py-3">
                           <div className={`flex items-center gap-1 text-sm ${token.priceChange >= 0 ? 'text-green-400' : 'text-red-400'
                             }`}>

@@ -13,7 +13,6 @@ interface RewardsCalculatorProps {
 
 interface TimeframeOption {
   value: number;
-  unit: string;
   label: string;
 }
 
@@ -29,18 +28,17 @@ export function RewardsCalculator({
   const [tokenAmount, setTokenAmount] = useState<string>('');
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeOption>({
     value: 1,
-    unit: 'days',
-    label: '1 DAY'
+    label: '1 HOUR'
   });
   const [projectedVolume, setProjectedVolume] = useState<'current' | 'custom'>('current');
   const [customVolume, setCustomVolume] = useState<string>('');
 
   const timeframeOptions: TimeframeOption[] = [
-    { value: 1, unit: 'hours', label: '1 HOUR' },
-    { value: 24, unit: 'hours', label: '1 DAY' },
-    { value: 168, unit: 'hours', label: '1 WEEK' },
-    { value: 720, unit: 'hours', label: '1 MONTH' },
-    { value: 8760, unit: 'hours', label: '1 YEAR' }
+    { value: 1, label: '1 HOUR' },
+    { value: 24, label: '1 DAY' },
+    { value: 168, label: '1 WEEK' },
+    { value: 720, label: '1 MONTH' },
+    { value: 8760, label: '1 YEAR' }
   ];
 
   const calculateRewards = () => {
@@ -51,6 +49,7 @@ export function RewardsCalculator({
     const userShare = parseFloat(tokenAmount) / totalSupply;
 
     const totalTaxCollected = volume * (distributionFee / 10000) * timeMultiplier;
+    console.log(totalSupply);
     const userRewards = totalTaxCollected * userShare;
 
     return {
@@ -72,8 +71,17 @@ export function RewardsCalculator({
   };
 
   const formatNumber = (value: number) => {
+    if (value === 0) return '0';
+
+    // For very small numbers (less than 0.0001)
+    if (value < 0.0001) {
+      // Use scientific notation and convert to decimal string
+      return value.toFixed(10).replace(/\.?0+$/, '');
+    }
+
     return new Intl.NumberFormat('en-US', {
-      maximumFractionDigits: 4
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 8
     }).format(value);
   };
 
@@ -88,110 +96,110 @@ export function RewardsCalculator({
   };
 
   return (
-    <div className="terminal-card p-4 sm:p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Calculator size={20} className="text-[#00ff00]" />
-        <h2 className="terminal-header">&gt; REWARDS_CALCULATOR</h2>
-      </div>
+    <div className="terminal-card p-4 sm:p-6 relative">
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 mb-6">
+          <Calculator size={20} className="text-[#00ff00]" />
+          <h2 className="terminal-header">&gt; REWARDS_CALCULATOR</h2>
+        </div>
 
-      <div className="space-y-6">
-        {/* Token Amount Input */}
-        <div>
-          <label className="block text-sm mb-2">
-            &gt; YOUR_HOLDINGS (Current Balance: ${userTokenSymbol} {userTokenBalance})
-          </label>
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <input
-                type="number"
-                value={tokenAmount}
-                onChange={(e) => setTokenAmount(e.target.value)}
-                placeholder="Enter amount of tokens"
-                className="terminal-input w-full px-3 py-2"
-              />
-            </div>
-            {userTokenBalance > 0 && (
+        <div className="space-y-6">
+          {/* Token Amount Input */}
+          <div>
+            <label className="block text-sm mb-2">
+              &gt; YOUR_HOLDINGS (Current Balance: ${userTokenSymbol} {userTokenBalance})
+            </label>
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <input
+                  type="number"
+                  value={tokenAmount}
+                  onChange={(e) => setTokenAmount(e.target.value)}
+                  placeholder="Enter amount of tokens"
+                  className="terminal-input w-full px-3 py-2"
+                />
+              </div>
+              {userTokenBalance > 0 && (
+                <button
+                  onClick={handleSetCurrentAmount}
+                  className="terminal-button px-3 py-2 hover:bg-[#00ff00]/10"
+                >
+                  CURRENT
+                </button>
+              )}
               <button
-                onClick={handleSetCurrentAmount}
+                onClick={handleSetMaxAmount}
                 className="terminal-button px-3 py-2 hover:bg-[#00ff00]/10"
               >
-                CURRENT
+                MAX
               </button>
-            )}
-            <button
-              onClick={handleSetMaxAmount}
-              className="terminal-button px-3 py-2 hover:bg-[#00ff00]/10"
-            >
-              MAX
-            </button>
-          </div>
-        </div>
-
-        {/* Timeframe Buttons */}
-        <div>
-          <label className="block text-sm mb-2">
-            &gt; TIMEFRAME
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {timeframeOptions.map((option) => (
-              <button
-                key={option.label}
-                onClick={() => setSelectedTimeframe(option)}
-                className={`px-3 py-2 text-xs transition-all duration-200 border ${selectedTimeframe.label === option.label
-                  ? 'bg-[#00ff00]/20 border-[#00ff00] text-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
-                  : 'terminal-button hover:bg-[#00ff00]/10'
-                  }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Volume Projection */}
-        <div>
-          <label className="block text-sm mb-2">
-            &gt; VOLUME_PROJECTION
-          </label>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                id="currentVolume"
-                checked={projectedVolume === 'current'}
-                onChange={() => setProjectedVolume('current')}
-                className="terminal-checkbox"
-              />
-              <label htmlFor="currentVolume" className="text-sm">
-                Current (${volume24h}/day)
-              </label>
             </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="radio"
-                id="customVolume"
-                checked={projectedVolume === 'custom'}
-                onChange={() => setProjectedVolume('custom')}
-                className="terminal-checkbox"
-              />
-              <label htmlFor="customVolume" className="text-sm">
-                Custom
-              </label>
-            </div>
-            {projectedVolume === 'custom' && (
-              <input
-                type="number"
-                value={customVolume}
-                onChange={(e) => setCustomVolume(e.target.value)}
-                className="terminal-input w-full px-3 py-2"
-                placeholder="Enter daily volume in USD"
-              />
-            )}
           </div>
-        </div>
 
-        {/* Results */}
-        {tokenAmount && (
+          {/* Timeframe Buttons */}
+          <div>
+            <label className="block text-sm mb-2">
+              &gt; TIMEFRAME
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {timeframeOptions.map((option) => (
+                <button
+                  key={option.label}
+                  onClick={() => setSelectedTimeframe(option)}
+                  className={`px-3 py-2 text-xs transition-all duration-200 border ${selectedTimeframe.label === option.label
+                    ? 'bg-[#00ff00]/20 border-[#00ff00] text-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
+                    : 'terminal-button hover:bg-[#00ff00]/10'
+                    }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Volume Projection */}
+          <div>
+            <label className="block text-sm mb-2">
+              &gt; VOLUME_PROJECTION
+            </label>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  id="currentVolume"
+                  checked={projectedVolume === 'current'}
+                  onChange={() => setProjectedVolume('current')}
+                  className="terminal-checkbox"
+                />
+                <label htmlFor="currentVolume" className="text-sm">
+                  Current (${volume24h}/day)
+                </label>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  id="customVolume"
+                  checked={projectedVolume === 'custom'}
+                  onChange={() => setProjectedVolume('custom')}
+                  className="terminal-checkbox"
+                />
+                <label htmlFor="customVolume" className="text-sm">
+                  Custom
+                </label>
+              </div>
+              {projectedVolume === 'custom' && (
+                <input
+                  type="number"
+                  value={customVolume}
+                  onChange={(e) => setCustomVolume(e.target.value)}
+                  className="terminal-input w-full px-3 py-2"
+                  placeholder="Enter daily volume in USD"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Results */}
           <div className="bg-black/30 p-4 rounded border border-[#00ff00]/20 space-y-4">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
@@ -227,8 +235,22 @@ export function RewardsCalculator({
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
+
+      <div
+        className="absolute inset-0 opacity-30 pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle at center, rgba(0, 255, 0, 0.2) 0%, transparent 70%)',
+          animation: 'pulse 4s ease-in-out infinite'
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(45deg, transparent 0px, transparent 10px, rgba(0, 255, 0, 0.1) 10px, rgba(0, 255, 0, 0.1) 20px)'
+        }}
+      />
     </div>
   );
 }

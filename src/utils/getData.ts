@@ -1,8 +1,6 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import axios from 'axios';
-import { SqrtPriceMath } from "@raydium-io/raydium-sdk-v2"
-import RaydiumService from './raydium';
 
 interface Holder {
     address: string;
@@ -15,27 +13,71 @@ interface Holder {
     realizedPnl: number;
 }
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (url: string, options: any = {}, retries = MAX_RETRIES): Promise<any> => {
+    try {
+        const response = await axios.get(url, options);
+        return response.data;
+    } catch (error) {
+        if (retries > 0) {
+            await sleep(RETRY_DELAY);
+            return fetchWithRetry(url, options, retries - 1);
+        }
+        throw error;
+    }
+};
+
 export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
     let tokenData: any = {};
     let tokenSolscanMetadata: any = {};
     let tokenInfoResponse: any = {};
     let metadataResponse: any = {};
     const solscanApiKey = import.meta.env.VITE_SOLSCAN_API_KEY;
+
     try {
-        tokenSolscanMetadata = (await axios.get(`https://pro-api.solscan.io/v2.0/token/meta/?address=${mintAccount.toString()}`, { headers: { 'token': solscanApiKey } })).data.data;
+        // Fetch Solscan metadata with retry
+        const solscanResponse = await fetchWithRetry(
+            `https://pro-api.solscan.io/v2.0/token/meta/?address=${mintAccount.toString()}`,
+            { headers: { 'token': solscanApiKey } }
+        );
+        tokenSolscanMetadata = solscanResponse.data;
     } catch (error) {
-        tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`)).data;
-        metadataResponse = (await axios.get(tokenInfoResponse.uri)).data;
+        // Fallback to moneyglitch API if Solscan fails
+        tokenInfoResponse = await fetchWithRetry(
+            `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
+        );
+        metadataResponse = await fetchWithRetry(tokenInfoResponse.uri);
     }
-    if (!tokenSolscanMetadata?.data?.metadata?.name) {
-        tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`)).data;
-        metadataResponse = (await axios.get(tokenInfoResponse.uri)).data;
+
+    // If Solscan metadata is incomplete, fetch from moneyglitch
+    if (!tokenSolscanMetadata?.name) {
+        tokenInfoResponse = await fetchWithRetry(
+            `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
+        );
+        metadataResponse = await fetchWithRetry(tokenInfoResponse.uri);
     }
-    const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAccount.toString()}`)).data;
-    const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`)).data;
-    const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)).data;
-    const distributionTokenMetadata = (await axios.get(`https://pro-api.solscan.io/v2.0/token/meta/?address=${taxInfoResponse.distribution_mint}`, { headers: { 'token': solscanApiKey } })).data.data;
-    if (distributionTokenMetadata == null) throw new Error("Distribution token metadata not found");
+
+    // Fetch additional data with retry
+    const [poolResponse, taxInfoResponse, glitchInfo] = await Promise.all([
+        fetchWithRetry(`https://api.moneyglitch.fun/v1/pools/${mintAccount.toString()}`),
+        fetchWithRetry(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`),
+        fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)
+    ]);
+
+    // Fetch distribution token metadata with retry
+    const distributionTokenMetadataResponse = await fetchWithRetry(
+        `https://pro-api.solscan.io/v2.0/token/meta/?address=${taxInfoResponse.distribution_mint}`,
+        { headers: { 'token': solscanApiKey } }
+    );
+    const distributionTokenMetadata = distributionTokenMetadataResponse.data;
+
+    if (distributionTokenMetadata == null) {
+        throw new Error("Distribution token metadata not found");
+    }
 
     tokenData = {
         name: tokenSolscanMetadata?.metadata?.name || tokenSolscanMetadata?.name || tokenInfoResponse.name,
@@ -71,9 +113,10 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
             burnWallet: taxInfoResponse.burn_wallet
         },
         glitchInfo: glitchInfo.distributed_value + glitchInfo.burned_value
-    }
+    };
+
     return tokenData;
-}
+};
 
 // export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
 //     let tokenData: any = {};
@@ -194,36 +237,61 @@ export const getTokenBalance = async (publicKey: PublicKey, tokenMintAddress: Pu
 
 export const getTopGlitchTokens = async () => {
     try {
-        // Fetch all tokens in one call
-        const topTokens = (await axios.get(`https://api.moneyglitch.fun/v1/stats/top/total?limit=5`)).data;
+        // Fetch all tokens in one call with retry
+        const topTokens = await fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/top/total?limit=5`);
         if (!topTokens?.length) return [];
 
         // Fetch data for all tokens in parallel
         const tokensData = await Promise.all(
             topTokens.map(async (item: any) => {
+                const mintAccount = new PublicKey(item.mint);
+                let tokenData: any = {};
+                let tokenSolscanMetadata: any = {};
+                let tokenInfoResponse: any = {};
+                let metadataResponse: any = {};
+                const solscanApiKey = import.meta.env.VITE_SOLSCAN_API_KEY;
 
-                const tokenInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/tokens/${item.mint}`)).data;
-                const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${item.mint}`)).data;
-                const taxInfoResponse = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${item.mint}`)).data;
-                const raydium = await RaydiumService.getInstance();
-                const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
-                const currentPrice = SqrtPriceMath.sqrtPriceX64ToPrice(
-                    computePoolInfo.sqrtPriceX64,
-                    6, // Token decimals (usually 6 for custom tokens)
-                    9  // WSOL decimals
-                );
-                // Get SOL price to convert to USD
-                const solPrice = await getSolPrice();
-                const priceInUsd = Number(currentPrice) * solPrice;
-                const glitchInfo = (await axios.get(`https://api.moneyglitch.fun/v1/stats/token/${item.mint}`)).data;
+                try {
+                    // Fetch Solscan metadata with retry
+                    const solscanResponse = await fetchWithRetry(
+                        `https://pro-api.solscan.io/v2.0/token/meta/?address=${mintAccount.toString()}`,
+                        { headers: { 'token': solscanApiKey } }
+                    );
+                    tokenSolscanMetadata = solscanResponse.data;
+                } catch (error) {
+                    // Fallback to moneyglitch API if Solscan fails
+                    tokenInfoResponse = await fetchWithRetry(
+                        `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
+                    );
+                    metadataResponse = await fetchWithRetry(tokenInfoResponse.uri);
+                }
 
-                return {
+                if (!tokenSolscanMetadata?.name) {
+                    tokenInfoResponse = await fetchWithRetry(
+                        `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
+                    );
+                    metadataResponse = await fetchWithRetry(tokenInfoResponse.uri);
+                }
+
+                const taxInfoResponse = await fetchWithRetry(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`);
+
+                // Fetch additional data with retry
+                const [glitchInfo, distributionTokenMetadataResponse] = await Promise.all([
+                    fetchWithRetry(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`),
+                    fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)
+                ]);
+
+                if (!distributionTokenMetadataResponse?.data) {
+                    throw new Error("Distribution token metadata not found");
+                }
+
+                tokenData = {
                     id: item.mint,
-                    name: tokenInfoResponse.name,
-                    price: priceInUsd || 0,
-                    priceChange: 0,
-                    marketCap: 0,
-                    volume24h: 0,
+                    name: tokenSolscanMetadata?.metadata?.name || tokenSolscanMetadata?.name || tokenInfoResponse.name,
+                    price: tokenSolscanMetadata?.price || 0,
+                    priceChange: tokenSolscanMetadata?.price_change_24h || 0,
+                    marketCap: tokenSolscanMetadata?.market_cap || 0,
+                    volume24h: tokenSolscanMetadata?.volume_24h || 0,
                     glitchesDistributed: glitchInfo.total_value_burned + glitchInfo.total_value_distributed,
                     glitchType: taxInfoResponse?.fee_type || 'NoFee',
                     tax: {
@@ -235,9 +303,9 @@ export const getTopGlitchTokens = async () => {
                         }
                     }
                 };
+                return tokenData;
             })
         );
-        console.log(tokensData);
         return tokensData;
     } catch (error) {
         console.error('Error fetching top tokens:', error);

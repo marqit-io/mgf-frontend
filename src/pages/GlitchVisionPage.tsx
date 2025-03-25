@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Zap, Timer, Gift, Flame, Sparkles, ArrowUpRight, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { getTotalStats } from '../utils/getData';
 import { fetchMintTransactions, MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
@@ -11,7 +11,7 @@ function GlitchVisionPage() {
   const [totalStats, setTotalStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [isLiveFeedLoading, setIsLiveFeedLoading] = useState(true);
-
+  const navigate = useNavigate();
   const filterTypes = [
     { value: 'ALL', label: 'ALL', icon: Sparkles, color: 'text-[#00ff00]' },
     { value: 'BURN', label: 'BURN', icon: Flame, color: 'text-red-400' },
@@ -316,6 +316,7 @@ function GlitchVisionPage() {
                   {filterTokens(liveFeed).map((item) => (
                     <div
                       key={item.mintAddress}
+                      onClick={() => navigate(`/token/${item.mintAddress}`)}
                       className="flex items-start gap-3 p-3 border-t border-[#00ff00]/20 first:border-t-0 hover:bg-[#00ff00]/5 transition-colors cursor-pointer bg-black/30 rounded"
                     >
                       <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-[#00ff00]/30">

@@ -155,7 +155,7 @@ export const fetchMintTransactions = async (limit: number, offset: number) => {
             taxRate: feeData.fee_rate / 100,
             distributionRate: feeData.distribution_rate / 100,
             burnRate: feeData.burn_rate / 100,
-            timestamp: new Date(token.minted).getUTCMilliseconds()
+            timestamp: new Date(token.minted).valueOf()
         }
     }))).filter(Boolean);
     return mintTransactionInfos;

@@ -252,7 +252,7 @@ function CreateCoinPage() {
     const computeBudgetIx = ComputeBudgetProgram.setComputeUnitLimit({
       units: 350000,
     });
-    const mintTokenResult = await buildMintTokenInstruction(
+    const mintTokenRes = await buildMintTokenInstruction(
       minterPublicKey,
       mintKeypair.publicKey,
       tokenMetadata,
@@ -260,7 +260,7 @@ function CreateCoinPage() {
       tokenRewardMint,
       tokenRewardProgram
     );
-    const mintTokenIx = mintTokenResult.instruction;
+    const mintTokenIx = mintTokenRes.instruction;
     mintTx.add(mintTokenIx);
     mintTx.add(computeBudgetIx);
     mintTx.feePayer = minterPublicKey;
@@ -331,59 +331,39 @@ function CreateCoinPage() {
     return {
       transactions: [mintTx, createPoolTx, depositPoolTx, lockPoolTx, jitoFeeTx],
       keys: createPoolResult.keys,
-      distributionWallet: mintTokenResult.distributionWallet
+      distributionWallet: mintTokenRes.distributionWallet
     };
   };
 
-  const sendAndConfirmTransaction = async (
-    connection: Connection,
-    transaction: Transaction,
-    stepName: string,
-    setDeploymentStatus: (status: { step: string; status: 'pending' | 'completed' | 'error'; error?: string }) => void
-  ) => {
-    try {
-      setDeploymentStatus({ step: `Sending ${stepName}...`, status: 'pending' });
-      const signature = await connection.sendRawTransaction(transaction.serialize());
+  const MAX_POLLING_TIME = 120000; // 2 minutes in milliseconds
+  const POLLING_INTERVAL = 2000; // 2 seconds between attempts
 
-      setDeploymentStatus({ step: `Confirming ${stepName}...`, status: 'pending' });
+  async function pollBundleStatus(bundleStatusPayload: any) {
+    const startTime = Date.now();
 
-      // Wait for confirmation with timeout and retry logic
-      let confirmed = false;
-      let attempts = 0;
-      const maxAttempts = 30; // 30 attempts * 2 seconds = 60 seconds total
+    const jitoBundleEndpoint = `${import.meta.env.VITE_JITO_ENDPOINT}/api/v1`;
 
-      while (!confirmed && attempts < maxAttempts) {
-        try {
-          const response = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
-          if (response?.value?.confirmationStatus === 'finalized') {
-            confirmed = true;
-            break;
-          }
+    while (Date.now() - startTime < MAX_POLLING_TIME) {
+      const bundleStatusResponse = await fetch(`${jitoBundleEndpoint}/getBundleStatuses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bundleStatusPayload),
+      });
 
-          if (response?.value?.err) {
-            throw new Error(`Transaction failed: ${JSON.stringify(response.value.err)}`);
-          }
+      const response = await bundleStatusResponse.json();
 
-          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between checks
-          attempts++;
-        } catch (e) {
-          console.warn(`Confirmation attempt ${attempts + 1} failed:`, e);
-          if (attempts >= maxAttempts) throw e;
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
+      if (response?.result?.value[0]?.confirmation_status === "confirmed") {
+        return true;
       }
 
-      if (!confirmed) {
-        throw new Error(`Transaction confirmation timeout after ${maxAttempts} attempts`);
-      }
-
-      setDeploymentStatus({ step: `${stepName} confirmed`, status: 'completed' });
-      return signature;
-    } catch (error) {
-      console.error(`${stepName} error:`, error);
-      throw new Error(`Error in ${stepName}: ${error}`);
+      // Wait before next polling attempt
+      await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
     }
-  };
+
+    throw new Error('Bundle confirmation timed out after 2 minutes');
+  }
 
   const handleInitialBuySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -469,52 +449,82 @@ function CreateCoinPage() {
         feeAccountKeypair
       );
 
-      // Sign and send transactions sequentially
-      const [mintTx, createPoolTx, depositPoolTx, lockPoolTx, jitoFeeTx] = allTransactions;
+      // Get latest blockhash
+      let blockhash = await connection.getLatestBlockhash();
+      allTransactions.forEach(tx => {
+        tx.recentBlockhash = blockhash.blockhash;
+      });
 
-      // 1. Mint Token Transaction
-      const { blockhash: mintBlockhash } = await connection.getLatestBlockhash();
-      mintTx.recentBlockhash = mintBlockhash;
-      mintTx.partialSign(mintKeypair);
-      const signedMintTx = await signTransaction(mintTx);
-      console.log(signedMintTx.serialize().toString('base64'));
-      await sendAndConfirmTransaction(connection, signedMintTx, 'Token Mint', setDeploymentStatus);
+      // Add necessary signatures
+      allTransactions[0].partialSign(mintKeypair);
+      allTransactions[2].partialSign(positionNFTMintKeypair);
+      allTransactions[3].partialSign(feeAccountKeypair);
 
-      // 2. Create Pool Transaction
-      const { blockhash: createPoolBlockhash } = await connection.getLatestBlockhash();
-      createPoolTx.recentBlockhash = createPoolBlockhash;
-      const signedCreatePoolTx = await signTransaction(createPoolTx);
-      await sendAndConfirmTransaction(connection, signedCreatePoolTx, 'Pool Creation', setDeploymentStatus);
+      // Sign all transactions with wallet
+      setDeploymentStatus({ step: 'Signing transactions...', status: 'pending' });
+      const signedTransactions = await signAllTransactions(allTransactions);
 
-      // 3. Deposit Pool Transaction
-      const { blockhash: depositBlockhash } = await connection.getLatestBlockhash();
-      depositPoolTx.recentBlockhash = depositBlockhash;
-      depositPoolTx.partialSign(positionNFTMintKeypair);
-      const signedDepositPoolTx = await signTransaction(depositPoolTx);
-      await sendAndConfirmTransaction(connection, signedDepositPoolTx, 'Pool Deposit', setDeploymentStatus);
+      // Prepare bundle for Jito
+      const bundle = signedTransactions.map(tx => tx.serialize().toString('base64'));
+      const jitoBundleEndpoint = `${import.meta.env.VITE_JITO_ENDPOINT}/api/v1`;
 
-      // 4. Lock Pool Transaction
-      const { blockhash: lockBlockhash } = await connection.getLatestBlockhash();
-      lockPoolTx.recentBlockhash = lockBlockhash;
-      lockPoolTx.partialSign(feeAccountKeypair);
-      const signedLockPoolTx = await signTransaction(lockPoolTx);
-      await sendAndConfirmTransaction(connection, signedLockPoolTx, 'Pool Lock', setDeploymentStatus);
+      // Send bundle to Jito
+      setDeploymentStatus({ step: 'Submitting bundle...', status: 'pending' });
+      const bundlePayload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "sendBundle",
+        "params": [
+          bundle,
+          {
+            "encoding": "base64"
+          }
+        ]
+      }
+
+      const response = await fetch(`${jitoBundleEndpoint}/bundles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(bundlePayload),
+      });
+
+      if (!response) {
+        throw new Error('Failed to submit bundle to Jito');
+      }
+
+      const { result: bundleId } = await response.json();
+      setDeploymentStatus({ step: 'Bundle submitted successfully', status: 'completed' });
+
+      // Wait for bundle confirmation
+      setDeploymentStatus({ step: 'Waiting for bundle confirmation...', status: 'pending' });
+
+      const bundleStatusPayload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "getBundleStatuses",
+        "params": [
+          [bundleId]
+        ]
+      }
+
+      await pollBundleStatus(bundleStatusPayload);
 
       const decimal = (await getMint(connection, tokenRewardMint, 'confirmed', tokenRewardProgram)).decimals;
 
-      // Post token data to API
       const tokenPayload = {
         token_mint: mintKeypair.publicKey.toBase58(),
         name: formData.name,
         symbol: formData.ticker,
         tax_rate: formData.transferTax * 100,
-        burn_rate: formData.taxDistribution.burn * 100,
-        distribution_rate: formData.taxDistribution.distribute * 100,
+        burn_rate: formData.transferTax == 0 ? 0 : formData.taxDistribution.burn * 100,
+        distribution_rate: formData.transferTax == 0 ? 0 : formData.taxDistribution.distribute * 100,
         interval: formData.glitchInterval,
         distribution_mint: tokenRewardMint,
         distribution_mint_program: tokenRewardProgram.toBase58(),
         distribution_mint_decimals: decimal,
-        distribution_wallet: distributionWallet,
+        distribution_wallet: distributionWallet.toBase58(),
         uri: ipfsUrl,
       }
 
