@@ -169,20 +169,59 @@ function parseTokenTransaction(
     }
 }
 
-export async function fetchRecentTrades(tokenMintAddress: string): Promise<TradeInfo[]> {
-    const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
-    const signatures = await connection.getSignaturesForAddress(new PublicKey(tokenMintAddress), { limit: 30 }, "confirmed");
-    console.log(signatures.map(sinature => sinature.signature.toString()));
-    const recentTrades = await Promise.all(signatures.map(async (signature) => {
-        const tx = await connection.getTransaction(signature.signature, { maxSupportedTransactionVersion: 0 });
-        if (!tx || tx.meta?.err) return null;
-        return parseTokenTransaction(tx, tokenMintAddress);
-    }));
-    const solPrice = await getSolPrice();
-    return Promise.all(recentTrades.filter(trade => trade !== null).map(async trade => {
-        trade.amountUsd = trade.amountSol * solPrice;
-        return trade;
-    }));
+export async function fetchRecentTrades(tokenMintAddress: string, poolAddress: string): Promise<TradeInfo[]> {
+    try {
+        // First try to get trades from API
+        const response = await axios.get(`https://api.geckoterminal.com/api/v2/networks/solana/pools/${poolAddress}/trades`, {
+            headers: {
+                'Accept': `application/json;version=20230302`
+            }
+        });
+
+        const tradesResponse = response.data.data;
+
+        // Check if we got valid trades data
+        if (tradesResponse && tradesResponse.length > 0) {
+            const numTrades = Math.min(tradesResponse.length, 10); // Take up to 10 trades
+            return tradesResponse.slice(0, numTrades).map((trade: any) => ({
+                id: trade.attributes.tx_hash,
+                timestamp: trade.attributes.block_timestamp,
+                type: trade.attributes.kind.toUpperCase(),
+                amountUsd: Number(trade.volume_in_usd),
+                amountSol: Number(trade.attributes.from_token_amount),
+                txHash: trade.attributes.tx_hash,
+                price: Number(trade.price_to_in_usd)
+            }));
+        }
+
+        // If API failed or returned no data, fallback to connection method
+        throw new Error('No trades found from API');
+
+    } catch (error) {
+        console.log('Falling back to connection method for trades');
+
+        // Fallback to connection method
+        const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
+        const signatures = await connection.getSignaturesForAddress(
+            new PublicKey(tokenMintAddress),
+            { limit: 30 },
+            "confirmed"
+        );
+
+        const recentTrades = await Promise.all(signatures.map(async (signature) => {
+            const tx = await connection.getTransaction(signature.signature, { maxSupportedTransactionVersion: 0 });
+            if (!tx || tx.meta?.err) return null;
+            return parseTokenTransaction(tx, tokenMintAddress);
+        }));
+
+        const solPrice = await getSolPrice();
+        return Promise.all(recentTrades
+            .filter(trade => trade !== null)
+            .map(async trade => {
+                trade.amountUsd = trade.amountSol * solPrice;
+                return trade;
+            }));
+    }
 }
 
 export function subscribeToTokenTrades(

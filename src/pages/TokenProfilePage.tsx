@@ -217,6 +217,10 @@ function TokenProfilePage() {
       setTokenData(data);
       setPrice(data.price);
 
+      fetchRecentTrades(tokenAddress.toString(), data.poolAddress.toString()).then(trades => {
+        setTransactions(trades);
+      });
+
       const holdersData = await getTokenTopHolders(tokenAddress, data.totalSupply, data.price);
       if (holdersData) {
         setHolders(holdersData);
@@ -244,9 +248,6 @@ function TokenProfilePage() {
 
   useEffect(() => {
     if (tokenAddress) {
-      fetchRecentTrades(tokenAddress.toString()).then(trades => {
-        setTransactions(trades);
-      });
       const unsubscribe = subscribeToTokenTrades(
         tokenAddress.toString(),
         (trade) => {
@@ -484,9 +485,11 @@ function TokenProfilePage() {
           {/* Chart */}
           <div className="lg:col-span-2">
             {tokenData ? (
-              <PriceChartWidget poolAddress={tokenData?.poolAddress.toString() || ''} />
+              <div className="h-[600px] lg:h-full">
+                <PriceChartWidget poolAddress={tokenData?.poolAddress.toString() || ''} />
+              </div>
             ) : (
-              <div className="w-full h-full bg-white/10 animate-pulse" />
+              <div className="h-[600px] lg:h-full bg-white/10 animate-pulse" />
             )}
           </div>
 

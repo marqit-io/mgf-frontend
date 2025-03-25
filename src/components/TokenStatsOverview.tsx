@@ -26,7 +26,6 @@ interface TokenStatsOverviewProps {
 }
 
 export function TokenStatsOverview({ stats, taxInfo }: TokenStatsOverviewProps) {
-  const [showWalletTooltip, setShowWalletTooltip] = useState(false);
   const [tooltipContent, setTooltipContent] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
