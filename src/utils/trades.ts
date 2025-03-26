@@ -270,4 +270,15 @@ export function subscribeToTokenTrades(
     return () => {
         connection.removeOnLogsListener(subscriptionId);
     };
+}
+
+export function getRelativeTime(timestamp: string): string {
+    const now = new Date().getTime();
+    const date = new Date(timestamp).getTime();
+    const diff = Math.floor((now - date) / 1000); // difference in seconds
+
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}min ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
 } 

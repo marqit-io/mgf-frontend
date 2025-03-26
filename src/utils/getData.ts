@@ -258,12 +258,12 @@ export const getTopGlitchTokens = async () => {
                 const solscanApiKey = import.meta.env.VITE_SOLSCAN_API_KEY;
 
                 try {
-                    // Fetch Solscan metadata with retry
-                    const solscanResponse = await fetchWithRetry(
+                    // Fetch Solscan metadata with retry and custom headers
+                    tokenSolscanMetadata = await fetchWithRetry(
                         `https://pro-api.solscan.io/v2.0/token/meta/?address=${mintAccount.toString()}`,
                         { headers: { 'token': solscanApiKey } }
                     );
-                    tokenSolscanMetadata = solscanResponse.data;
+                    tokenSolscanMetadata = tokenSolscanMetadata.data;
                 } catch (error) {
                     // Fallback to moneyglitch API if Solscan fails
                     tokenInfoResponse = await fetchWithRetry(
@@ -279,7 +279,9 @@ export const getTopGlitchTokens = async () => {
                     metadataResponse = await fetchWithRetry(tokenInfoResponse.uri);
                 }
 
-                const taxInfoResponse = await fetchWithRetry(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`);
+                const taxInfoResponse = await fetchWithRetry(
+                    `https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`
+                );
 
                 // Fetch additional data with retry
                 const [glitchInfo, distributionTokenMetadataResponse] = await Promise.all([

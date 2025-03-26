@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { TrendingUp, TrendingDown, LineChart, Sparkles, Zap, Timer, Flame, Gift, ChevronDown, ChevronUp, ArrowUpRight, Twitter } from 'lucide-react';
 import { getTopGlitchTokens, getTotalStats } from '../utils/getData';
 import { fetchMintTransactions, MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
+import { RelativeTime } from '../components/RelativeTime';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -510,7 +511,7 @@ function HomePage() {
                     </div>
 
                     <div className="flex flex-col items-end text-xs">
-                      <span className="opacity-70 whitespace-nowrap">{formatTime(item.timestamp)}</span>
+                      <RelativeTime timestamp={item.timestamp} />
                       <span className="font-mono">{item.mintAddress}</span>
                     </div>
                   </div>

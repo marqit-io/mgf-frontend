@@ -114,7 +114,7 @@ const ErrorScreen = ({ message, onRetry }: { message: string, onRetry: () => voi
   </div>
 );
 
-function TokenProfilePage() {
+export default function TokenProfilePage() {
   const { tokenId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -294,11 +294,6 @@ function TokenProfilePage() {
     }).format(value);
   };
 
-  const formatTime = (timestamp: string | null | undefined) => {
-    if (!timestamp) return '--:--:--';
-    return new Date(timestamp).toLocaleTimeString();
-  };
-
   const formatSolAmount = (amount: number | null | undefined) => {
     if (!amount && amount !== 0) return '--';
     return `${amount.toFixed(2)} SOL`;
@@ -426,7 +421,7 @@ function TokenProfilePage() {
                         </a>}
                         {connected && publicKey && <button
                           onClick={() => setIsPnlModalOpen(true)}
-                          className="terminal-button px-3 py-1.5 flex items-center gap-2 relative group animate-pulse hover:animate-none"
+                          className="terminal-button ml-6 px-3 py-1.5 flex items-center gap-2 relative group animate-pulse hover:animate-none"
                           title="Share Your P&L"
                         >
                           <Share size={14} />
@@ -612,7 +607,9 @@ function TokenProfilePage() {
               <tbody>
                 {transactions.map((tx) => (
                   <tr key={tx.id} className="border-t border-[#00ff00]/20">
-                    <td className="py-4">{formatTime(tx.timestamp)}</td>
+                    <td className="py-4">
+                      {tx.timestamp}
+                    </td>
                     <td className="py-4">
                       {tx.timestamp && (
                         <div className={`flex items-center ${tx.type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
@@ -709,5 +706,3 @@ function TokenProfilePage() {
     </div >
   );
 }
-
-export default TokenProfilePage;

@@ -299,14 +299,14 @@ export function TokenStatsOverview({ stats, taxInfo }: TokenStatsOverviewProps) 
                 </div>
               )}
 
-              {/* Distribution Wallet */}
+              {/* Burn Wallet */}
               {taxInfo.burn > 0 && taxInfo.burnWallet && (
                 <div className="terminal-card bg-black/40 p-4 border border-[#00ff00]/20 hover:border-[#00ff00]/40 transition-all duration-300 sm:col-span-2 lg:col-span-4 relative overflow-hidden group">
                   <div className="relative z-10">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Wallet size={16} className="text-[#00ff00]" />
-                        <span className="text-sm">Distribution Wallet</span>
+                        <Flame size={16} className="text-[#00ff00]" />
+                        <span className="text-sm">Burn Wallet</span>
                       </div>
                       <div className="relative">
                         <a

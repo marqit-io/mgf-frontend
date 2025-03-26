@@ -218,10 +218,7 @@ export function RewardsCalculator({
               </div>
               <div className="text-right">
                 <div className="font-mono text-[#00ff00]">
-                  {formatNumber(rewards.distributionTokens)} {distributionTokenSymbol}
-                </div>
-                <div className="text-xs opacity-70 font-mono">
-                  ≈ {formatCurrency(rewards.usd)}
+                  ≈ {formatCurrency(rewards.usd)} of {distributionTokenSymbol}
                 </div>
               </div>
             </div>

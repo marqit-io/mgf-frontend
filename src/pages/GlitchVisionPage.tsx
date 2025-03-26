@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Zap, Timer, Gift, Flame, Sparkles, ArrowUpRight, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { getTotalStats } from '../utils/getData';
 import { fetchMintTransactions, MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
+import { RelativeTime } from '../components/RelativeTime';
 
 function GlitchVisionPage() {
   const [liveFeed, setLiveFeed] = useState<MintInfo[]>([]);
@@ -338,7 +339,7 @@ function GlitchVisionPage() {
                       </div>
 
                       <div className="flex flex-col items-end text-xs">
-                        <span className="opacity-70 whitespace-nowrap">{formatTime(item.timestamp)}</span>
+                        <span className="opacity-70 whitespace-nowrap"><RelativeTime timestamp={item.timestamp} /></span>
                         <span className="font-mono">{item.mintAddress}</span>
                       </div>
                     </div>
