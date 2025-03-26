@@ -16,6 +16,8 @@ import { WalletContextProvider } from './context/WalletContext';
 import { TosCheck } from './components/TosCheck';
 import { DisclaimerPopup } from './components/DisclaimerPopup';
 import PointsPage from './pages/PointsPage';
+import WrapStationPage from './pages/WrapStationPage';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
@@ -36,6 +38,7 @@ function App() {
     <WalletContextProvider>
       <TokenProvider>
         <SearchProvider>
+          <Toaster position="bottom-right" />
           <Router>
             <div className="terminal-bg min-h-screen">
               <div className="w-full px-2 sm:px-4 lg:px-8">
@@ -101,6 +104,12 @@ function App() {
                     <>
                       <TosCheck />
                       <PointsPage />
+                    </>
+                  } />
+                  <Route path="/wrap-station" element={
+                    <>
+                      <TosCheck />
+                      <WrapStationPage />
                     </>
                   } />
                   <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
