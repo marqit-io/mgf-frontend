@@ -40,7 +40,7 @@ function App() {
             <div className="terminal-bg min-h-screen">
               <div className="w-full px-2 sm:px-4 lg:px-8">
                 {/* Header */}
-                <div className="h-[120px] sm:h-[140px] flex flex-col justify-between py-4">
+                <div className="h-[140px] flex flex-col justify-between py-4">
                   {/* Top Row: Logo, Links, and Wallet */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-4">

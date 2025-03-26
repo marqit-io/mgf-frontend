@@ -69,11 +69,6 @@ function GlitchVisionPage() {
     fetchTotalStats();
   }, []);
 
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString();
-  };
-
   const getTaxDistributionLabel = (tax: { enabled: boolean, total: number, distribution: { burn: number, reward: number } }) => {
     if (!tax.enabled) return <span className="opacity-70">0%</span>;
 

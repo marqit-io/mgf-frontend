@@ -1,5 +1,5 @@
 import { Connection, PublicKey } from '@solana/web3.js';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
+import { getAssociatedTokenAddressSync, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import axios from 'axios';
 import { getTokenPrice } from './trades';
 
@@ -236,7 +236,8 @@ export const getSolBalance = async (publicKey: PublicKey) => {
 
 export const getTokenBalance = async (publicKey: PublicKey, tokenMintAddress: PublicKey) => {
     const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
-    const tokenAccount = getAssociatedTokenAddressSync(tokenMintAddress, publicKey, false, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+    const tokenAccount = getAssociatedTokenAddressSync(tokenMintAddress, publicKey, false, TOKEN_2022_PROGRAM_ID);
+    console.log(tokenMintAddress.toString(), publicKey.toString());
     const balance = await connection.getTokenAccountBalance(tokenAccount);
     return balance.value.uiAmount || 0;
 };
