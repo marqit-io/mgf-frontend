@@ -344,12 +344,12 @@ export default function TokenProfilePage() {
   return (
     <div className="w-full min-h-screen p-2 sm:p-4">
       {/* Header Section */}
-      <div className="terminal-card p-4 mb-4">
-        <div className="flex flex-col gap-4">
+      <div className="terminal-card p-3 sm:p-4 mb-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
           {/* Token Info Header */}
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-3 sm:gap-4">
             {/* Profile Image */}
-            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 border-[#00ff00] shadow-[0_0_15px_rgba(0,255,0,0.3)]">
+            <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 border-[#00ff00] shadow-[0_0_15px_rgba(0,255,0,0.3)]">
               {tokenData ? (
                 <img
                   src={tokenData.profileImage}
@@ -363,13 +363,13 @@ export default function TokenProfilePage() {
             </div>
 
             {/* Token Info */}
-            <div className="flex-grow">
+            <div className="flex-grow min-w-0">
               <div className="flex flex-col gap-2">
-                <div className="flex items-center flex-wrap gap-2">
+                <div className="flex items-center flex-wrap gap-1.5 sm:gap-2">
                   {tokenData ? (
                     <>
-                      <h1 className="terminal-header text-2xl">{tokenData.name}</h1>
-                      <span className="text-lg opacity-70">${tokenData.ticker}</span>
+                      <h1 className="terminal-header text-base sm:text-lg md:text-2xl truncate">{tokenData.name}</h1>
+                      <span className="text-sm sm:text-base md:text-lg opacity-70">${tokenData.ticker}</span>
                     </>
                   ) : (
                     <>
@@ -377,14 +377,14 @@ export default function TokenProfilePage() {
                       <SkeletonBar className="h-6 w-20" />
                     </>
                   )}
-                  <div className="flex items-center gap-2 px-2 py-1 bg-black/40 rounded-lg border border-[#00ff00]/20">
+                  <div className="w-full sm:w-auto flex items-center gap-2 px-2 py-1 bg-black/40 rounded-lg border border-[#00ff00]/20">
                     {tokenData ? (
                       <>
                         <a
                           href={getSolscanTokenUrl(tokenData.contractAddress)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-mono text-xs sm:text-sm text-[#00ff00] hover:text-[#00ff00]/80 transition-colors flex items-center gap-1"
+                          className="font-mono text-xs md:text-sm text-[#00ff00] hover:text-[#00ff00]/80 transition-colors flex items-center gap-1"
                         >
                           {tokenData.contractAddressShort}
                           <ExternalLink size={12} className="opacity-50" />
@@ -406,7 +406,9 @@ export default function TokenProfilePage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
+
+                {/* Social Links and Price */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
                   <div className="flex items-center gap-2">
                     {tokenData ? (
                       <>
@@ -440,14 +442,13 @@ export default function TokenProfilePage() {
                   <div className="text-right">
                     {tokenData ? (
                       <>
-                        <div className="text-xl">{price ? formatPrice(price) : '--'}</div>
-                        {
-                          tokenData.priceChange24h !== 0 &&
-                          <div className={`flex items-center justify-end ${tokenData.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <div className="text-sm sm:text-base md:text-xl">{price ? formatPrice(price) : '--'}</div>
+                        {tokenData.priceChange24h !== 0 && (
+                          <div className={`flex items-center justify-end text-xs md:text-sm ${tokenData.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {tokenData.priceChange24h >= 0 ? <TrendUp size={14} /> : <TrendingDown size={14} />}
-                            <span className="ml-1 text-sm">{tokenData.priceChange24h}%</span>
+                            <span className="ml-1">{tokenData.priceChange24h}%</span>
                           </div>
-                        }
+                        )}
                       </>
                     ) : (
                       <div className="space-y-2">
@@ -461,11 +462,13 @@ export default function TokenProfilePage() {
             </div>
           </div>
 
-          {/* Description - Hidden on Mobile */}
+          {/* Description - Shown on both mobile and desktop with different styling */}
           {tokenData ? (
-            <p className="terminal-text text-sm opacity-80 hidden sm:block">{tokenData.description}</p>
+            <p className="terminal-text text-xs md:text-sm opacity-80 line-clamp-2 sm:line-clamp-none">
+              {tokenData.description}
+            </p>
           ) : (
-            <div className="hidden sm:block space-y-2">
+            <div className="space-y-2">
               <SkeletonBar className="h-4 w-full" />
               <SkeletonBar className="h-4 w-3/4" />
             </div>
@@ -474,17 +477,17 @@ export default function TokenProfilePage() {
       </div>
 
       {/* Chart and Trade Panel Section */}
-      <div className="terminal-card p-4 mb-4">
-        <h2 className="terminal-header mb-4">&gt; MARKET_DATA</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="terminal-card p-3 sm:p-4 mb-4">
+        <h2 className="terminal-header mb-3 sm:mb-4 text-sm sm:text-base md:text-lg">&gt; MARKET_DATA</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Chart */}
           <div className="lg:col-span-2">
             {tokenData ? (
-              <div className="h-[600px] lg:h-full">
+              <div className="h-[450px] lg:h-full">
                 <PriceChartWidget poolAddress={tokenData?.poolAddress.toString() || ''} />
               </div>
             ) : (
-              <div className="h-[600px] lg:h-full bg-white/10 animate-pulse" />
+              <div className="h-[450px] lg:h-full bg-white/10 animate-pulse" />
             )}
           </div>
 
@@ -549,143 +552,141 @@ export default function TokenProfilePage() {
       )}
 
       {/* Holders and Transactions Section */}
-      <div className="terminal-card p-4 sm:p-6 mb-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="flex">
-              <button
-                onClick={() => setActiveTab('transactions')}
-                className={`terminal-button px-4 py-2 rounded-r-none ${activeTab === 'transactions' ? 'bg-[#00ff00]/20 border-[#00ff00]' : ''
-                  }`}
-              >
-                <span className="flex items-center gap-2">
-                  <ArrowUpRight size={16} />
-                  TRANSACTIONS
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('holders')}
-                className={`terminal-button px-4 py-2 rounded-l-none border-l-0 ${activeTab === 'holders' ? 'bg-[#00ff00]/20 border-[#00ff00]' : ''
-                  }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Users size={16} />
-                  HOLDERS
-                </span>
-              </button>
-            </div>
+      <div className="terminal-card p-3 sm:p-4 mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          {/* Tab Buttons */}
+          <div className="w-full sm:w-auto flex">
+            <button
+              onClick={() => setActiveTab('transactions')}
+              className={`flex-1 sm:flex-none terminal-button px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm ${activeTab === 'transactions' ? 'bg-[#00ff00]/20 border-[#00ff00]' : ''
+                }`}
+            >
+              <span className="flex items-center justify-center gap-1.5 sm:gap-2">
+                <ArrowUpRight size={14} className="sm:w-4 sm:h-4" />
+                TRANSACTIONS
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('holders')}
+              className={`flex-1 sm:flex-none terminal-button px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-l-none border-l-0 ${activeTab === 'holders' ? 'bg-[#00ff00]/20 border-[#00ff00]' : ''
+                }`}
+            >
+              <span className="flex items-center justify-center gap-1.5 sm:gap-2">
+                <Users size={14} className="sm:w-4 sm:h-4" />
+                HOLDERS
+              </span>
+            </button>
           </div>
 
+          {/* View All Holders Button */}
           {activeTab === 'holders' && (
             <a
               href={getSolscanTokenHoldersUrl(tokenData?.contractAddress)}
               target="_blank"
               rel="noopener noreferrer"
-              className="terminal-button px-4 py-2 text-sm flex items-center gap-2 group"
+              className="w-full sm:w-auto terminal-button px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm flex items-center justify-center gap-2 group"
             >
               <span>VIEW_ALL_HOLDERS</span>
-              <ExternalLink
-                size={14}
-                className="text-[#00ff00] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
+              <ExternalLink size={14} className="text-[#00ff00]" />
             </a>
           )}
         </div>
 
-        {activeTab === 'transactions' && (
+        {/* Tables with horizontal scroll on mobile */}
+        <div className="-mx-3 sm:mx-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left">
-                  <th className="terminal-dim pb-4">&gt; TIME</th>
-                  <th className="terminal-dim pb-4">&gt; TYPE</th>
-                  <th className="terminal-dim pb-4">&gt; AMOUNT (USD)</th>
-                  <th className="terminal-dim pb-4">&gt; AMOUNT (SOL)</th>
-                  <th className="terminal-dim pb-4">&gt; TX</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.id} className="border-t border-[#00ff00]/20">
-                    <td className="py-4">
-                      {tx.timestamp}
-                    </td>
-                    <td className="py-4">
-                      {tx.timestamp && (
-                        <div className={`flex items-center ${tx.type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
-                          {tx.type === 'BUY' ?
-                            <ArrowUpRight size={16} className="mr-1" /> :
-                            <ArrowDownRight size={16} className="mr-1" />
-                          }
-                          {tx.type || '--'}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4">{formatCurrency(tx.amountUsd)}</td>
-                    <td className="py-4">{formatSolAmount(tx.amountSol)}</td>
-                    <td className="py-4">{formatTxHash(tx.txHash)}</td>
+            {activeTab === 'transactions' && (
+              <table className="w-full text-xs sm:text-sm md:text-base">
+                <thead>
+                  <tr className="text-left">
+                    <th className="terminal-dim pb-4 text-xs sm:text-xs">&gt; TIME</th>
+                    <th className="terminal-dim pb-4 text-xs sm:text-xs">&gt; TYPE</th>
+                    <th className="terminal-dim pb-4 text-xs sm:text-xs">&gt; AMOUNT (USD)</th>
+                    <th className="terminal-dim pb-4 text-xs sm:text-xs">&gt; AMOUNT (SOL)</th>
+                    <th className="terminal-dim pb-4 text-xs sm:text-xs">&gt; TX</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="border-t border-[#00ff00]/20">
+                      <td className="py-4">
+                        {tx.timestamp}
+                      </td>
+                      <td className="py-4">
+                        {tx.timestamp && (
+                          <div className={`flex items-center ${tx.type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>
+                            {tx.type === 'BUY' ?
+                              <ArrowUpRight size={16} className="mr-1" /> :
+                              <ArrowDownRight size={16} className="mr-1" />
+                            }
+                            {tx.type || '--'}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-4">{formatCurrency(tx.amountUsd)}</td>
+                      <td className="py-4">{formatSolAmount(tx.amountSol)}</td>
+                      <td className="py-4">{formatTxHash(tx.txHash)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
 
-        {activeTab === 'holders' && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left">
-                  <th className="terminal-dim pb-4">&gt; WALLET</th>
-                  <th className="terminal-dim pb-4">&gt; TOKEN_ACCOUNT</th>
-                  <th className="terminal-dim pb-4 text-right">&gt; BALANCE</th>
-                  <th className="terminal-dim pb-4 text-right">&gt; %</th>
-                  <th className="terminal-dim pb-4 text-right">&gt; VALUE</th>
-                </tr>
-              </thead>
-              <tbody>
-                {holders.map((holder) => (
-                  <tr
-                    key={holder.address}
-                    className="border-t border-[#00ff00]/20 hover:bg-[#00ff00]/5 transition-colors"
-                  >
-                    <td className="py-4">
-                      <a
-                        href={getSolscanUrl(holder.address)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono flex items-center gap-1 hover:text-[#00ff00] transition-colors"
-                      >
-                        {`${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`}
-                        <ExternalLink size={12} className="opacity-50" />
-                      </a>
-                    </td>
-                    <td className="py-4">
-                      <a
-                        href={getSolscanUrl(holder.tokenAccount)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono flex items-center gap-1 hover:text-[#00ff00] transition-colors"
-                      >
-                        {`${holder.tokenAccount.slice(0, 6)}...${holder.tokenAccount.slice(-4)}`}
-                        <ExternalLink size={12} className="opacity-50" />
-                      </a>
-                    </td>
-                    <td className="py-4 text-right font-mono">
-                      {formatBalance(holder.balance)} {tokenData.ticker}
-                    </td>
-                    <td className="py-4 text-right font-mono text-[#00ff00]">
-                      {holder.percentage.toFixed(3)}%
-                    </td>
-                    <td className="py-4 text-right font-mono">
-                      {formatCurrency(holder.value)}
-                    </td>
+            {activeTab === 'holders' && (
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left">
+                    <th className="terminal-dim pb-4">&gt; WALLET</th>
+                    <th className="terminal-dim pb-4">&gt; TOKEN_ACCOUNT</th>
+                    <th className="terminal-dim pb-4 text-right">&gt; BALANCE</th>
+                    <th className="terminal-dim pb-4 text-right">&gt; %</th>
+                    <th className="terminal-dim pb-4 text-right">&gt; VALUE</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {holders.map((holder) => (
+                    <tr
+                      key={holder.address}
+                      className="border-t border-[#00ff00]/20 hover:bg-[#00ff00]/5 transition-colors"
+                    >
+                      <td className="py-4">
+                        <a
+                          href={getSolscanUrl(holder.address)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono flex items-center gap-1 hover:text-[#00ff00] transition-colors"
+                        >
+                          {`${holder.address.slice(0, 6)}...${holder.address.slice(-4)}`}
+                          <ExternalLink size={12} className="opacity-50" />
+                        </a>
+                      </td>
+                      <td className="py-4">
+                        <a
+                          href={getSolscanUrl(holder.tokenAccount)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono flex items-center gap-1 hover:text-[#00ff00] transition-colors"
+                        >
+                          {`${holder.tokenAccount.slice(0, 6)}...${holder.tokenAccount.slice(-4)}`}
+                          <ExternalLink size={12} className="opacity-50" />
+                        </a>
+                      </td>
+                      <td className="py-4 text-right font-mono">
+                        {formatBalance(holder.balance)} {tokenData.ticker}
+                      </td>
+                      <td className="py-4 text-right font-mono text-[#00ff00]">
+                        {holder.percentage.toFixed(3)}%
+                      </td>
+                      <td className="py-4 text-right font-mono">
+                        {formatCurrency(holder.value)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Comments Section

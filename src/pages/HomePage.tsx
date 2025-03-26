@@ -457,21 +457,21 @@ function HomePage() {
           </div>
         </div>
 
-        <div className="terminal-card p-4">
+        <div className="terminal-card p-3 sm:p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="terminal-header">&gt; GLITCH_VISION</h2>
+            <h2 className="terminal-header text-base sm:text-lg">&gt; GLITCH_VISION</h2>
             <Link
               to="/glitch-vision"
-              className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5 hover:bg-[#00ff00]/10"
+              className="terminal-button px-2 sm:px-3 py-1 sm:py-1.5 text-xs flex items-center gap-1.5 hover:bg-[#00ff00]/10"
             >
               VIEW_ALL
               <ArrowUpRight size={14} className="text-[#00ff00]" />
             </Link>
           </div>
-          <div className="flex-grow h-[calc(100vh-280px)] min-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="flex-grow h-[calc(100vh-280px)] min-h-[400px] sm:min-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
             {isLiveFeedLoading ? (
               <div className="h-full flex items-center justify-center">
-                <div className="text-[#00ff00] text-lg flex items-center gap-2">
+                <div className="text-[#00ff00] text-base sm:text-lg flex items-center gap-2">
                   <span className="animate-[blink_1s_ease-in-out_infinite]">.</span>
                   <span className="animate-[blink_1s_ease-in-out_0.2s_infinite]">.</span>
                   <span className="animate-[blink_1s_ease-in-out_0.4s_infinite]">.</span>
@@ -483,30 +483,33 @@ function HomePage() {
                 {liveFeed.map((item) => (
                   <div
                     key={item.mintAddress}
-                    className="flex items-start gap-3 p-3 border-t border-[#00ff00]/20 first:border-t-0 hover:bg-[#00ff00]/5 transition-colors cursor-pointer bg-black/30"
+                    className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 border-t border-[#00ff00]/20 first:border-t-0 hover:bg-[#00ff00]/5 transition-colors cursor-pointer bg-black/30"
                     onClick={() => navigate(`/token/${item.mintAddress}`)}
                   >
-                    <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-[#00ff00]/30">
+                    <div className="flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 rounded-lg overflow-hidden border border-[#00ff00]/30">
                       <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                     </div>
 
                     <div className="flex-grow min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Zap size={14} className="text-[#00ff00] flex-shrink-0" />
-                        <span className="font-semibold truncate">{item.name}</span>
-                        <span className="text-xs opacity-70">({item.symbol})</span>
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 flex-wrap">
+                        <Zap size={12} className="text-[#00ff00] flex-shrink-0 sm:hidden" />
+                        <Zap size={14} className="text-[#00ff00] flex-shrink-0 hidden sm:block" />
+                        <span className="font-semibold truncate text-sm sm:text-base">{item.name}</span>
+                        <span className="text-[10px] sm:text-xs opacity-70">({item.symbol})</span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-sm whitespace-nowrap overflow-hidden">
-                        <Timer size={14} className="text-[#00ff00] flex-shrink-0" />
+                      <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap overflow-hidden">
+                        <Timer size={12} className="text-[#00ff00] flex-shrink-0 sm:hidden" />
+                        <Timer size={14} className="text-[#00ff00] flex-shrink-0 hidden sm:block" />
                         <span className="opacity-70">Tax:</span>
                         {getTaxDistributionLabel({ enabled: item.taxRate != 0, total: item.taxRate, distribution: { burn: item.burnRate, reward: item.distributionRate } })}
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end text-xs">
+                    <div className="flex flex-col items-end text-[10px] sm:text-xs">
                       <RelativeTime timestamp={item.timestamp} />
-                      <span className="font-mono">{item.mintAddress}</span>
+                      <span className="font-mono hidden sm:block">{item.mintAddress}</span>
+                      <span className="font-mono sm:hidden">{item.mintAddress.slice(0, 4)}...{item.mintAddress.slice(-4)}</span>
                     </div>
                   </div>
                 ))}
