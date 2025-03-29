@@ -89,7 +89,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       tx.add(jitoTipIx);
 
       const priorityFeeIx = ComputeBudgetProgram.setComputeUnitLimit({
-        units: 200000
+        units: 350000
       });
       tx.add(priorityFeeIx);
 
@@ -207,14 +207,36 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
         }
       }
 
+      const payload = {
+        base_amount: tradeType === 'buy'
+          ? Math.floor(Number(estimatedOutput) * 1e6) || 0
+          : Math.floor(Number(amount) * 1e6) || 0,
+        base_mint: tokenMintAddress.toBase58(),
+        quote_mint: WSOLMint.toBase58(),
+        quote_amount: tradeType === 'buy'
+          ? Math.floor(Number(amount) * 1e9) || 0
+          : Math.floor(Number(estimatedOutput) * 1e9) || 0,
+        is_buy: tradeType === 'buy',
+        wallet: publicKey.toBase58(),
+      };
+
+      console.log(payload);
+
+      // Report the swap with correct base/quote determination
+      fetch(`${import.meta.env.VITE_BACKEND_API_BASEURL}/v1/swap`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
       // Clear form
       setAmount('');
       setEstimatedOutput(null);
 
-      // Wait for balances to update on-chain
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      await updateBalances();
-      await updatePrice();
+      updateBalances();
+      updatePrice();
 
       setSuccess({
         message: `Successfully ${tradeType === 'buy' ? 'bought' : 'sold'} ${amount} ${tradeType === 'buy' ? 'SOL' : tokenSymbol}`,

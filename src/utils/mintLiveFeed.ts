@@ -1,6 +1,6 @@
 import { Connection, PublicKey, VersionedTransactionResponse } from "@solana/web3.js";
 import { getTokenMetadata } from "@solana/spl-token"
-import axios from "axios";
+import { fetchWithRetry } from './fetchWithRetry';
 import { MgfMatrix as IDL } from "./idl";
 
 export type MintInfo = {
@@ -138,12 +138,15 @@ const parseMintTokenTransaction = async (tx: VersionedTransactionResponse) => {
 
 
 export const fetchMintTransactions = async (limit: number, offset: number) => {
-    const tokensData = (await axios.get(`https://api.moneyglitch.fun/v1/tokens?limit=${limit}&offset=${offset}`)).data;
+    const tokensData = await fetchWithRetry(
+        `https://api.moneyglitch.fun/v1/tokens?limit=${limit}&offset=${offset}`
+    );
+
     const mintTransactionInfos: MintInfo[] = (await Promise.all(tokensData.map(async (token: any) => {
         let metadata, feeData;
         try {
-            metadata = (await axios.get(token.uri)).data;
-            feeData = (await axios.get(`https://api.moneyglitch.fun/v1/fees/${token.mint}`)).data;
+            metadata = await fetchWithRetry(token.uri);
+            feeData = await fetchWithRetry(`https://api.moneyglitch.fun/v1/fees/${token.mint}`);
         } catch {
             return null;
         }

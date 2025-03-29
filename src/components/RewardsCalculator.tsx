@@ -8,7 +8,6 @@ interface RewardsCalculatorProps {
   userTokenBalance: number; // User's token balance
   userTokenSymbol: string;  // Symbol of user's token
   distributionTokenSymbol: string;  // Symbol of distribution token
-  distributionTokenPrice: number;   // Price of distribution token
 }
 
 interface TimeframeOption {
@@ -23,7 +22,6 @@ export function RewardsCalculator({
   userTokenBalance,
   userTokenSymbol,
   distributionTokenSymbol,
-  distributionTokenPrice
 }: RewardsCalculatorProps) {
   const [tokenAmount, setTokenAmount] = useState<string>('');
   const [selectedTimeframe, setSelectedTimeframe] = useState<TimeframeOption>({
@@ -42,20 +40,19 @@ export function RewardsCalculator({
   ];
 
   const calculateRewards = () => {
-    if (!tokenAmount) return { tokens: 0, distributionTokens: 0, usd: 0 };
+    if (!tokenAmount) return { usdInDay: 0, usdInTimeFrame: 0 };
 
     const volume = projectedVolume === 'current' ? volume24h : parseFloat(customVolume || '0');
     const timeMultiplier = selectedTimeframe.value / 24; // Convert hours to days
     const userShare = parseFloat(tokenAmount) / totalSupply;
 
-    const totalTaxCollected = volume * (distributionFee / 10000) * timeMultiplier;
+    const totalTaxCollected = volume * distributionFee * timeMultiplier;
     console.log(totalSupply);
     const userRewards = totalTaxCollected * userShare;
 
     return {
-      tokens: userRewards / distributionTokenPrice,
-      distributionTokens: userRewards / distributionTokenPrice,
-      usd: userRewards
+      usdInDay: volume * distributionFee * userShare,
+      usdInTimeFrame: userRewards
     };
   };
 
@@ -67,21 +64,6 @@ export function RewardsCalculator({
       currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(value);
-  };
-
-  const formatNumber = (value: number) => {
-    if (value === 0) return '0';
-
-    // For very small numbers (less than 0.0001)
-    if (value < 0.0001) {
-      // Use scientific notation and convert to decimal string
-      return value.toFixed(10).replace(/\.?0+$/, '');
-    }
-
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 8
     }).format(value);
   };
 
@@ -218,7 +200,7 @@ export function RewardsCalculator({
               </div>
               <div className="text-right">
                 <div className="font-mono text-[#00ff00]">
-                  ≈ {formatCurrency(rewards.usd)} of {distributionTokenSymbol}
+                  ≈ {formatCurrency(rewards.usdInTimeFrame)} of {distributionTokenSymbol}
                 </div>
               </div>
             </div>
@@ -227,7 +209,7 @@ export function RewardsCalculator({
               <div className="flex items-center gap-2 text-xs opacity-70">
                 <ArrowRight size={12} className="text-[#00ff00]" />
                 <span>
-                  {formatNumber(rewards.distributionTokens / (selectedTimeframe.value / 24))} {distributionTokenSymbol} per day
+                  {formatCurrency(rewards.usdInDay)} of {distributionTokenSymbol} per day
                 </span>
               </div>
             </div>

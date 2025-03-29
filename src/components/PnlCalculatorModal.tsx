@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Download, Copy, X, Loader2, CheckCircle2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { v5 as uuidv5 } from 'uuid';
 
 interface PnlCalculatorModalProps {
     isOpen: boolean;
@@ -29,8 +30,8 @@ interface LoadingStep {
 export function PnlCalculatorModal({
     isOpen,
     onClose,
-    tokenSymbol,
     tokenAddress,
+    tokenSymbol,
     remainingTokenAmount,
     currentTokenPrice,
     currentDistributionTokenPrice,
@@ -48,6 +49,15 @@ export function PnlCalculatorModal({
     ]);
     const [isCopying, setIsCopying] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+
+    const NAMESPACE = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+
+    // Add this function
+    const derivePositionId = (wallet: string, tokenMint: string): string => {
+        const name = `${wallet}::${tokenMint}`;
+        console.log(name);
+        return uuidv5(name, NAMESPACE);
+    }
 
     // Add reset function
     const resetCalculator = () => {
@@ -88,14 +98,30 @@ export function PnlCalculatorModal({
                                 index === 2 ? { ...step, status: 'completed' } : step
                             ));
 
-                            // Mock PNL data loading complete
-                            const mockPnlData: PnlData = {
-                                totalBought: 1000,
-                                totalSold: 600,
-                                totalRewards: 20
-                            };
-                            setPnlData(mockPnlData);
-                            setIsLoading(false);
+                            const positionId = derivePositionId(publicKey.toBase58(), tokenAddress);
+                            console.log(positionId);
+
+                            fetch(`${import.meta.env.VITE_BACKEND_API_BASEURL}/v1/positions/${positionId}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    const pnlData: PnlData = {
+                                        totalBought: data.usd_amount_bought,
+                                        totalSold: data.usd_amount_sold,
+                                        totalRewards: data.rewards_received
+                                    }
+                                    setPnlData(pnlData);
+                                    setIsLoading(false);
+                                })
+                                .catch(error => {
+                                    console.error(error);
+                                    const pnlData: PnlData = {
+                                        totalBought: 0,
+                                        totalSold: 0,
+                                        totalRewards: 0
+                                    }
+                                    setPnlData(pnlData);
+                                    setIsLoading(false);
+                                });
                         }, 1000);
                     }, 1000);
                 }, 1000);

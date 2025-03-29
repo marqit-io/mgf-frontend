@@ -443,7 +443,7 @@ export default function TokenProfilePage() {
                     {tokenData ? (
                       <>
                         <div className="text-sm sm:text-base md:text-xl">{price ? formatPrice(price) : '--'}</div>
-                        {tokenData.priceChange24h !== 0 && (
+                        {tokenData?.priceChange24h && tokenData.priceChange24h !== 0 && !Number.isNaN(Number(tokenData.priceChange24h)) && (
                           <div className={`flex items-center justify-end text-xs md:text-sm ${tokenData.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {tokenData.priceChange24h >= 0 ? <TrendUp size={14} /> : <TrendingDown size={14} />}
                             <span className="ml-1">{tokenData.priceChange24h}%</span>
@@ -540,13 +540,12 @@ export default function TokenProfilePage() {
       {tokenData.taxInfo.distribute !== 0 && (
         <div className="mb-4">
           <RewardsCalculator
-            distributionFee={Number(tokenData.taxInfo.distribute)}
+            distributionFee={Number(tokenData.taxInfo.total / 10000 * tokenData.taxInfo.distribute / 10000)}
             volume24h={tokenData.volume24h || 0}
             totalSupply={tokenData.totalSupply / 10 ** 6 || 1000000000}
             userTokenBalance={tokenBalance}
             userTokenSymbol={tokenData.ticker}
             distributionTokenSymbol={tokenData.taxInfo.distributionToken.symbol || 'Distribution Token'}
-            distributionTokenPrice={125}
           />
         </div>
       )}

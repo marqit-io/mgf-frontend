@@ -69,6 +69,18 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
         fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)
     ]);
 
+    let pairStats: any = {};
+
+    try {
+        pairStats = await fetchWithRetry(`https://solana-gateway.moralis.io/token/mainnet/pairs/${poolResponse.pool_id}/stats`, {
+            headers: {
+                'x-api-key': import.meta.env.VITE_MORALIS_API_KEY
+            }
+        }, 1);
+    } catch (error) {
+        console.error('Error fetching pool stats:', error);
+    }
+
     // Fetch distribution token metadata with retry
     const distributionTokenMetadataResponse = await fetchWithRetry(
         `https://pro-api.solscan.io/v2.0/token/meta/?address=${taxInfoResponse.distribution_mint}`,
@@ -80,11 +92,6 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
         throw new Error("Distribution token metadata not found");
     }
 
-    let price;
-    if (!tokenSolscanMetadata?.price) {
-        price = await getTokenPrice(mintAccount.toString());
-    }
-
     tokenData = {
         name: tokenSolscanMetadata?.metadata?.name || tokenSolscanMetadata?.name || tokenInfoResponse.name,
         ticker: tokenSolscanMetadata?.metadata?.symbol || tokenSolscanMetadata?.symbol || tokenInfoResponse.symbol,
@@ -93,12 +100,12 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
         poolAddress: poolResponse.pool_id,
         profileImage: tokenSolscanMetadata?.metadata?.image || tokenSolscanMetadata?.icon || metadataResponse.image,
         description: tokenSolscanMetadata?.metadata?.description || tokenSolscanMetadata?.description || metadataResponse.description,
-        marketCap: tokenSolscanMetadata?.market_cap || 0,
+        marketCap: tokenSolscanMetadata?.supply / 10 ** 6 * Number(pairStats?.currentUsdPrice) || tokenSolscanMetadata?.market_cap || 0,
         holders: tokenSolscanMetadata?.holder || 0,
-        price: tokenSolscanMetadata?.price || price?.price,
-        volume24h: tokenSolscanMetadata?.volume_24h || 0,
-        priceChange24h: tokenSolscanMetadata?.price_change_24h || 0,
-        totalSupply: tokenSolscanMetadata?.supply || 1000000000,
+        price: Number(pairStats?.currentUsdPrice) || tokenSolscanMetadata?.price || 0,
+        volume24h: Number(pairStats?.totalVolume?.["24h"]) || tokenSolscanMetadata?.volume_24h || 0,
+        priceChange24h: Number(pairStats?.pricePercentChange?.["24h"]).toFixed(2) || tokenSolscanMetadata?.price_change_24h || 0,
+        totalSupply: tokenSolscanMetadata?.supply / 10 ** 6 || 1000000000,
         socialLinks: {
             telegram: tokenSolscanMetadata?.metadata?.extensions?.telegram || tokenSolscanMetadata?.metadata?.telegram || metadataResponse?.extensions?.telegram,
             website: tokenSolscanMetadata?.metadata?.extensions?.website || tokenSolscanMetadata?.metadata?.website || metadataResponse?.extensions?.website,
@@ -244,18 +251,15 @@ export const getTokenBalance = async (publicKey: PublicKey, tokenMintAddress: Pu
 
 export const getTopGlitchTokens = async () => {
     try {
-        // Fetch all tokens in one call with retry
         const topTokens = await fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/top/total?limit=5`);
         if (!topTokens?.length) return [];
 
-        // Fetch data for all tokens in parallel
         const tokensData = await Promise.all(
             topTokens.map(async (item: any) => {
                 const mintAccount = new PublicKey(item.mint);
                 let tokenData: any = {};
                 let tokenSolscanMetadata: any = {};
                 let tokenInfoResponse: any = {};
-                let metadataResponse: any = {};
                 const solscanApiKey = import.meta.env.VITE_SOLSCAN_API_KEY;
 
                 try {
@@ -270,14 +274,12 @@ export const getTopGlitchTokens = async () => {
                     tokenInfoResponse = await fetchWithRetry(
                         `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
                     );
-                    metadataResponse = await fetchWithRetry(tokenInfoResponse.uri);
                 }
 
                 if (!tokenSolscanMetadata?.name) {
                     tokenInfoResponse = await fetchWithRetry(
                         `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
                     );
-                    metadataResponse = await fetchWithRetry(tokenInfoResponse.uri);
                 }
 
                 const taxInfoResponse = await fetchWithRetry(
@@ -285,22 +287,37 @@ export const getTopGlitchTokens = async () => {
                 );
 
                 // Fetch additional data with retry
-                const [glitchInfo, distributionTokenMetadataResponse] = await Promise.all([
+                const [glitchInfo, poolInfoResponse] = await Promise.all([
                     fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`),
-                    fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`)
+                    fetchWithRetry(`https://api.moneyglitch.fun/v1/pools/${mintAccount.toString()}`)
                 ]);
 
-                if (!distributionTokenMetadataResponse?.mint) {
-                    throw new Error("Distribution token metadata not found");
+                let poolStats: any = {};
+
+                try {
+                    poolStats = await fetchWithRetry(
+                        `https://solana-gateway.moralis.io/token/mainnet/pairs/${poolInfoResponse.pool_id}/stats`,
+                        {
+                            headers: {
+                                'x-api-key': import.meta.env.VITE_MORALIS_API_KEY
+                            }
+                        },
+                        1
+                    );
+                } catch (error) {
+                    console.error('Error fetching pool stats:', error);
                 }
+
+                // Get price using getTokenPrice
+                const price = await getTokenPrice(mintAccount.toString());
 
                 tokenData = {
                     id: item.mint,
                     name: tokenSolscanMetadata?.metadata?.name || tokenSolscanMetadata?.name || tokenInfoResponse.name,
-                    price: tokenSolscanMetadata?.price || 0,
-                    priceChange: tokenSolscanMetadata?.price_change_24h || 0,
-                    marketCap: tokenSolscanMetadata?.market_cap || 0,
-                    volume24h: tokenSolscanMetadata?.volume_24h || 0,
+                    price: poolStats?.currentUsdPrice || price?.price || 0,
+                    priceChange: poolStats?.pricePercentChange?.["24h"] || tokenSolscanMetadata?.price_change_24h || 0,
+                    marketCap: poolStats?.currentUsdPrice * tokenSolscanMetadata?.supply / 10 ** 6 || tokenSolscanMetadata?.market_cap || 0,
+                    volume24h: poolStats?.totalVolume?.["24h"] || tokenSolscanMetadata?.volume_24h || 0,
                     glitchesDistributed: glitchInfo.total_value_burned + glitchInfo.total_value_distributed,
                     glitchType: taxInfoResponse?.fee_type || 'NoFee',
                     tax: {

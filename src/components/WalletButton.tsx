@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, ChevronDown, Gift, LogOut, Repeat } from 'lucide-react';
+import { Wallet, ChevronDown, LogOut, Repeat } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function WalletButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +23,13 @@ export function WalletButton() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    //Register wallet to DB
+    if (connected && publicKey) {
+      fetchWithRetry(`${import.meta.env.VITE_BACKEND_API_BASEURL}/v1/login/${publicKey.toBase58()}`);
+    }
+  }, [connected, publicKey]);
 
   const handleConnect = () => {
     setVisible(true);
@@ -63,7 +71,7 @@ export function WalletButton() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-black border border-[#00ff00]/30 rounded-lg shadow-lg overflow-hidden z-50">
           <div className="py-1">
-            <button
+            {/* <button
               onClick={() => {
                 navigate('/points');
                 setIsOpen(false);
@@ -72,8 +80,7 @@ export function WalletButton() {
             >
               <Gift size={16} className="text-[#00ff00]" />
               <span>Points</span>
-            </button>
-
+            </button> */}
             <button
               onClick={() => {
                 navigate('/wrap-station');

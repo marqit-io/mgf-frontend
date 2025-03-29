@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, LineChart, Sparkles, Zap, Timer, Flame, Gift,
 import { getTopGlitchTokens, getTotalStats } from '../utils/getData';
 import { fetchMintTransactions, MintInfo, subscribeToTokenMints } from '../utils/mintLiveFeed';
 import { RelativeTime } from '../components/RelativeTime';
+import { TelegramLogo } from '../components/TelegramLogo';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -532,13 +533,13 @@ function HomePage() {
                   FOLLOW
                 </a>
                 <a
-                  href="#"
+                  href="https://t.me/moneyglitchfun"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="terminal-button px-3 py-1.5 text-xs flex items-center gap-1.5"
                 >
-                  SUPPORT
-                  <ArrowUpRight size={14} className="text-[#00ff00]" />
+                  <TelegramLogo className="w-3.5 h-3.5 text-[#00ff00]" />
+                  TELEGRAM
                 </a>
                 <Link
                   to="/how-it-works"

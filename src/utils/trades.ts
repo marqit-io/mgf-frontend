@@ -156,7 +156,9 @@ function parseTokenTransaction(
 
         return {
             id: tx.transaction.signatures[0],
-            timestamp: tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : new Date().toISOString(),
+            timestamp: tx.blockTime
+                ? new Date(tx.blockTime * 1000).toLocaleString()
+                : new Date().toLocaleString(),
             type: mainTokenTransfer.amount > 0 ? 'BUY' : 'SELL',
             amountUsd: 0,
             amountSol: mainWsolTransfer ? Math.abs(mainWsolTransfer.amount) : tx.meta?.postBalances ? Math.abs(tx.meta?.postBalances[0] - tx.meta?.preBalances[0]) / 10 ** 9 : 0,
@@ -185,7 +187,7 @@ export async function fetchRecentTrades(tokenMintAddress: string, poolAddress: s
             const numTrades = Math.min(tradesResponse.length, 10); // Take up to 10 trades
             return tradesResponse.slice(0, numTrades).map((trade: any) => ({
                 id: trade.attributes.tx_hash,
-                timestamp: trade.attributes.block_timestamp,
+                timestamp: new Date(trade.attributes.block_timestamp).toLocaleString(),
                 type: trade.attributes.kind.toUpperCase(),
                 amountUsd: Number(trade.attributes.volume_in_usd),
                 amountSol: trade.attributes.kind == 'buy' ? Number(trade.attributes.from_token_amount) : Number(trade.attributes.to_token_amount),

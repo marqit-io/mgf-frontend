@@ -6,6 +6,13 @@ interface RetryConfig {
     headers?: Record<string, string>;
 }
 
+const IPFS_GATEWAYS = [
+    "https://cloudflare-ipfs.com/ipfs/",
+    "https://dweb.link/ipfs/",
+    "https://nftstorage.link/ipfs/",
+    "https://ipfs.io/ipfs/"
+];
+
 export async function fetchWithRetry(
     url: string,
     {
@@ -16,6 +23,23 @@ export async function fetchWithRetry(
         headers = {}
     }: RetryConfig = {}
 ) {
+    if (url.startsWith('ipfs://')) {
+        const cid = url.replace('ipfs://', '');
+
+        for (const gateway of IPFS_GATEWAYS) {
+            try {
+                const response = await fetch(gateway + cid);
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (error) {
+                console.warn(`Failed to fetch from ${gateway}`, error);
+                continue;
+            }
+        }
+        throw new Error('Failed to fetch from all IPFS gateways');
+    }
+
     let lastError: Error | null = null;
     let delay = initialDelay;
 
