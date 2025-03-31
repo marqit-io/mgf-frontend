@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Terminal, Zap, Timer, Gift, Flame, Sparkles, ArrowRight, ArrowUpDown, Waves, Wallet, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, Terminal, Zap, Timer, Gift, Flame, Sparkles, ArrowRight, ArrowUpDown, Waves, Wallet, ArrowUpRight, Book, Lock } from 'lucide-react';
 
 function HowItWorksPage() {
   return (
@@ -12,6 +12,20 @@ function HowItWorksPage() {
           <ArrowLeft size={16} />
           <span>&gt; RETURN_HOME</span>
         </Link>
+
+        <a
+          href="https://docs.moneyglitch.fun"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="terminal-button px-4 py-2 text-sm flex items-center gap-2 group"
+        >
+          <Book size={16} className="text-[#00ff00]" />
+          <span>&gt; DOCS</span>
+          <ArrowUpRight
+            size={14}
+            className="text-[#00ff00] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+          />
+        </a>
       </div>
 
       <div className="terminal-card p-6">
@@ -26,21 +40,40 @@ function HowItWorksPage() {
             <div className="flex items-start gap-3">
               <Waves size={20} className="text-[#00ff00] mt-1 flex-shrink-0" />
               <div className="space-y-3">
-                <p className="opacity-90">
-                  <span className="text-[#00ff00] font-bold">Bonding Curves are old tech...</span>
+                <p className="text-[#00ff00] font-bold">
+                  MONEYGLITCH.FUN is the next evolution of token launches — and the home of rewards tokens.
                 </p>
-                <p className="opacity-90">
-                  With concentrated liquidity market maker, your token launches instantly on Raydium with a juicy $5K initial market cap. No more waiting around for migrations or complicated setups - it's trading time from day one!
-                </p>
-                <p className="opacity-90">
-                  At <span className="text-[#00ff00] font-bold">MONEYGLITCH.FUN</span> - we want you to let your imagination run wild.
-                </p>
-                <p className="opacity-90">
-                  We're not a boring launchpad - we're your playground for crafting unique, rewarding experiences that keep communities coming back for more.
-                </p>
-                <p className="opacity-90">
-                  Forget the limitations, let your mind run wild, <span className="font-bold text-[#00ff00]">create your token today for free</span>!
-                </p>
+
+                <div className="space-y-2">
+                  <p className="opacity-90">
+                    Your token deploys instantly on Raydium using concentrated liquidity, launching with a $5K market cap and trading from day one.
+                    No bonding curves. No migration delays. No technical headaches.
+                  </p>
+
+                  <p className="opacity-90">
+                    There's no need to fund your own liquidity — we handle that.
+                    Launch for just 0.2 SOL, with every cent going directly to Raydium.
+                    We're up to 100x cheaper than traditional launchpads.
+                  </p>
+
+                  <p className="opacity-90">
+                    Configure your rewards in any token — SOL, stablecoins, or custom SPLs — and your token will be automatically listed on GLITCH VISION, our real-time rewards trading terminal.
+                  </p>
+
+                  <p className="opacity-90">
+                    Each token gets a dynamic profile page that showcases your tax settings, distribution mechanics, and on-chain performance — designed to help traders understand and engage with your ecosystem instantly.
+                  </p>
+
+                  <p className="opacity-90">
+                    This is more than a launch.
+                    It's an infrastructure for visibility, growth, and nonstop reward flow.
+                  </p>
+
+                  <p className="text-[#00ff00] font-bold mt-4">
+                    BONDING CURVES ARE OLD TEK
+                  </p>
+                </div>
+
                 <div className="pt-2">
                   <Link
                     to="/create"
@@ -53,7 +86,6 @@ function HowItWorksPage() {
               </div>
             </div>
           </div>
-
           {/* Introduction */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-[#00ff00]">
@@ -126,7 +158,6 @@ function HowItWorksPage() {
               </div>
             </div>
           </div>
-
           {/* Distribution Token */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-[#00ff00]">
@@ -148,12 +179,14 @@ function HowItWorksPage() {
               <div className="bg-black/30 p-4 rounded border border-[#00ff00]/20 mt-4">
                 <p className="text-xs opacity-70">Example:</p>
                 <p className="mt-2">
-                  If you configure a 5% tax with REWARD distribution in SOL, and your token has $1,000,000 in trading volume:
+                  If you configure a 5% tax with REWARD distribution in SOL and 1-hour intervals:
                 </p>
                 <ul className="list-disc pl-6 mt-2 space-y-1 opacity-80">
-                  <li>$50,000 worth of SOL is collected (5% tax)</li>
-                  <li>At the next interval, the SOL is distributed to holders</li>
+                  <li>Your token does $1,000,000 in trading volume during the 1-hour interval</li>
+                  <li>$50,000 worth of SOL is collected from the 5% tax during this period</li>
+                  <li>At the end of the interval, the SOL is distributed to holders</li>
                   <li>A holder with 10% of the supply receives $5,000 worth of SOL</li>
+                  <li>The process repeats for the next interval</li>
                 </ul>
               </div>
             </div>
@@ -187,6 +220,50 @@ function HowItWorksPage() {
               </p>
             </div>
           </div>
+          {/* Security Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-[#00ff00]">
+              <Lock size={18} />
+              <h2 className="text-lg">&gt; SECURITY</h2>
+            </div>
+            <div className="pl-6 space-y-2 text-sm">
+              <p className="text-[#00ff00] font-bold">
+                MONEYGLITCH.FUN is built for trustless, transparent launches.
+              </p>
+              <ul className="space-y-3 mt-4">
+                <li className="flex items-start gap-2">
+                  <Lock size={14} className="text-[#00ff00] mt-1" />
+                  <span className="opacity-80">
+                    Liquidity is locked and burned at launch — no one can withdraw it.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Lock size={14} className="text-[#00ff00] mt-1" />
+                  <span className="opacity-80">
+                    Every token is launched fairly, with 100% of the supply added directly to the liquidity pool.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Lock size={14} className="text-[#00ff00] mt-1" />
+                  <span className="opacity-80">
+                    Tax settings are permanent — they cannot be changed after deployment.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Lock size={14} className="text-[#00ff00] mt-1" />
+                  <span className="opacity-80">
+                    Rewards are handled automatically by our contracts, removing human intervention and reducing risk.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Lock size={14} className="text-[#00ff00] mt-1" />
+                  <span className="opacity-80">
+                    No backdoors. Just clean, secure launches every time.
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
 
           {/* Getting Started */}
           <div className="space-y-4">
@@ -207,7 +284,6 @@ function HowItWorksPage() {
               </ol>
             </div>
           </div>
-
           {/* New Enhanced CTA Section */}
           <div className="mt-12 create-token-card p-8 text-center">
             <h3 className="text-2xl font-bold mb-4 text-[#00ff00]">&gt; READY_TO_CREATE?</h3>
@@ -228,7 +304,6 @@ function HowItWorksPage() {
               </Link>
             </div>
           </div>
-
         </div>
       </div>
     </div>
