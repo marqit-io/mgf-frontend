@@ -526,6 +526,7 @@ function CreateCoinPage() {
         distribution_mint_decimals: decimal,
         distribution_wallet: distributionWallet.toBase58(),
         uri: ipfsUrl,
+        pool_token_account: keys.token_0_vault
       }
 
       const postTokenResult = await fetch(`https://api.moneyglitch.fun/v1/tokens`,

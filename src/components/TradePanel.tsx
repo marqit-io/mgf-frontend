@@ -164,6 +164,8 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       const maxRetries = 3;
       let retries = 0;
 
+      debugger;
+
       while (retries < maxRetries) {
         try {
           const response = await connection.getSignatureStatus(signature);
@@ -203,7 +205,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
             }
             throw new Error('Failed to confirm transaction. Please check your wallet or explorer for status.');
           }
-          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
 
@@ -219,8 +220,6 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
         is_buy: tradeType === 'buy',
         wallet: publicKey.toBase58(),
       };
-
-      console.log(payload);
 
       // Report the swap with correct base/quote determination
       fetch(`${import.meta.env.VITE_BACKEND_API_BASEURL}/v1/swap`, {

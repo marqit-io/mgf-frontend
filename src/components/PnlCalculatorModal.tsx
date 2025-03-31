@@ -105,9 +105,9 @@ export function PnlCalculatorModal({
                                 .then(response => response.json())
                                 .then(data => {
                                     const pnlData: PnlData = {
-                                        totalBought: data.usd_amount_bought,
-                                        totalSold: data.usd_amount_sold,
-                                        totalRewards: data.rewards_received
+                                        totalBought: data.usd_amount_bought / 100,
+                                        totalSold: data.usd_amount_sold / 100,
+                                        totalRewards: data.rewards_received / 100
                                     }
                                     setPnlData(pnlData);
                                     setIsLoading(false);
