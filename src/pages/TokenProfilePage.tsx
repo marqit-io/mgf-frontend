@@ -170,16 +170,22 @@ export default function TokenProfilePage() {
 
   const updateBalances = async () => {
     console.log('Updating balances ....');
+    let balanceUpdated = false;
     if (connected && publicKey && tokenAddress) {
       getTokenBalance(publicKey, tokenAddress).then(balance => {
-        setTokenBalance(balance);
-        console.log("Token Balance :", balance);
+        if (balance != tokenBalance) {
+          setTokenBalance(balance);
+          balanceUpdated = true;
+        }
       });
       getSolBalance(publicKey).then(balance => {
-        setSolBalance(balance);
-        console.log("Sol Balance :", balance);
+        if (balance != solBalance) {
+          setSolBalance(balance);
+          balanceUpdated = true;
+        }
       });
     }
+    return balanceUpdated;
   };
 
   useEffect(() => {
@@ -542,7 +548,7 @@ export default function TokenProfilePage() {
           <RewardsCalculator
             distributionFee={Number(tokenData.taxInfo.total / 10000 * tokenData.taxInfo.distribute / 10000)}
             volume24h={tokenData.volume24h || 0}
-            totalSupply={tokenData.totalSupply / 10 ** 6 || 1000000000}
+            totalSupply={tokenData.totalSupply || 1000000000}
             userTokenBalance={tokenBalance}
             userTokenSymbol={tokenData.ticker}
             distributionTokenSymbol={tokenData.taxInfo.distributionToken.symbol || 'Distribution Token'}

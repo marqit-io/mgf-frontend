@@ -20,7 +20,7 @@ interface TradePanelProps {
   solBalance: number;
   distributionTokenMintAddress: PublicKey;
   updatePrice: () => Promise<void>;
-  updateBalances: () => Promise<void>;
+  updateBalances: () => Promise<boolean>;
 }
 
 export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceInSol, tokenPrice, tokenTax, distributionTokenMintAddress, tokenBalance = 0, solBalance = 0, updatePrice, updateBalances }: TradePanelProps) {
@@ -160,53 +160,11 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       const signedTx = await signTransaction(tx);
       const signature = await connection.sendRawTransaction(signedTx.serialize());
 
-      // Modified confirmation logic with retries
-      const maxRetries = 3;
-      let retries = 0;
-
-      debugger;
-
-      while (retries < maxRetries) {
-        try {
-          const response = await connection.getSignatureStatus(signature);
-
-          if (response && response.value) {
-            if (response.value.err) {
-              throw new Error(`Transaction failed: ${JSON.stringify(response.value.err)}`);
-            }
-
-            if (response.value.confirmationStatus === 'finalized') {
-              // Transaction confirmed successfully
-              break;
-            }
-          }
-
-          retries++;
-          if (retries === maxRetries) {
-            // Check one last time with longer timeout
-            await connection.confirmTransaction({
-              signature,
-              blockhash: latestBlockhash.blockhash,
-              lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-            }, 'finalized');
-          } else {
-            // Wait before next retry
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-        } catch (err) {
-          console.error('Confirmation attempt failed:', err);
-          retries++;
-          if (retries === maxRetries) {
-            // Even if we get a blockheight exceed error, the transaction might have succeeded
-            const response = await connection.getSignatureStatus(signature);
-            if (!response?.value?.err) {
-              // Transaction likely succeeded, continue with success flow
-              break;
-            }
-            throw new Error('Failed to confirm transaction. Please check your wallet or explorer for status.');
-          }
-        }
-      }
+      await connection.confirmTransaction({
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+      }, 'confirmed');
 
       const payload = {
         base_amount: tradeType === 'buy'
@@ -230,17 +188,32 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
         body: JSON.stringify(payload)
       });
 
-      // Clear form
-      setAmount('');
-      setEstimatedOutput(null);
-
-      updateBalances();
-      updatePrice();
-
+      // After transaction confirmation, show success immediately
       setSuccess({
         message: `Successfully ${tradeType === 'buy' ? 'bought' : 'sold'} ${amount} ${tradeType === 'buy' ? 'SOL' : tokenSymbol}`,
         signature
       });
+
+      // Clear form
+      setAmount('');
+      setEstimatedOutput(null);
+
+      // Start polling for balance updates in the background
+      const pollBalances = async () => {
+        let attempts = 10; // Maximum number of attempts
+        while (attempts > 0) {
+          const updated = await updateBalances();
+          if (updated) {
+            updatePrice();
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 1 second between attempts
+          attempts--;
+        }
+      };
+
+      // Start polling without awaiting
+      pollBalances().catch(console.error);
 
     } catch (error) {
       console.error('Trade failed:', error);

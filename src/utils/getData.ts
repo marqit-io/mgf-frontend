@@ -23,7 +23,10 @@ const fetchWithRetry = async (url: string, options: any = {}, retries = MAX_RETR
     try {
         const response = await axios.get(url, options);
         return response.data;
-    } catch (error) {
+    } catch (error: any) {
+        if (error.status == 404) {
+            throw new Error("Not found");
+        }
         if (retries > 0) {
             await sleep(RETRY_DELAY);
             return fetchWithRetry(url, options, retries - 1);
@@ -213,7 +216,7 @@ export const getTokenTopHolders = async (mintAccount: PublicKey, totalSupply: nu
             address: item.owner,
             tokenAccount: item.address,
             balance: item.amount / 10 ** item.decimals,
-            percentage: (item.amount / totalSupply) * 100,
+            percentage: (item.amount / totalSupply / 10 ** item.decimals) * 100,
             value: item.amount / 10 ** item.decimals * price,
             transactions: 10,
             unrealizedPnl: 10,
@@ -224,11 +227,26 @@ export const getTokenTopHolders = async (mintAccount: PublicKey, totalSupply: nu
     return result;
 };
 
+// Add caching for frequently accessed data
+const cache = {
+    solPrice: { value: 0, timestamp: 0 },
+    tokenData: new Map<string, { data: any, timestamp: number }>()
+};
+
+const CACHE_DURATION = 30000; // 30 seconds
+
+// Optimized getSolPrice with caching
 export async function getSolPrice(): Promise<number> {
+    const now = Date.now();
+    if (cache.solPrice.value && now - cache.solPrice.timestamp < CACHE_DURATION) {
+        return cache.solPrice.value;
+    }
+
     try {
         axios.defaults.headers.common['token'] = import.meta.env.VITE_SOLSCAN_API_KEY;
         const response = (await axios.get(`https://pro-api.solscan.io/v2.0/token/meta/?address=So11111111111111111111111111111111111111112`)).data.data;
-        return Number(response.price);
+        cache.solPrice = { value: Number(response.price), timestamp: now };
+        return cache.solPrice.value;
     } catch (error) {
         console.error('Error fetching SOL price:', error);
         return 0;
@@ -241,12 +259,28 @@ export const getSolBalance = async (publicKey: PublicKey) => {
     return balance / 10 ** 9;
 };
 
-export const getTokenBalance = async (publicKey: PublicKey, tokenMintAddress: PublicKey) => {
+// Optimized getTokenBalance with retry and confirmation
+export const getTokenBalance = async (publicKey: PublicKey, tokenMintAddress: PublicKey, maxRetries = 5): Promise<number> => {
     const connection = new Connection(import.meta.env.VITE_RPC_ENDPOINT);
     const tokenAccount = getAssociatedTokenAddressSync(tokenMintAddress, publicKey, false, TOKEN_2022_PROGRAM_ID);
-    console.log(tokenMintAddress.toString(), publicKey.toString());
-    const balance = await connection.getTokenAccountBalance(tokenAccount);
-    return balance.value.uiAmount || 0;
+
+    let retries = 0;
+    while (retries < maxRetries) {
+        try {
+            const balance = await connection.getTokenAccountBalance(tokenAccount);
+            if (balance.value.uiAmount !== null) {
+                return balance.value.uiAmount;
+            }
+        } catch (error) {
+            console.warn(`Attempt ${retries + 1} failed to get token balance`);
+        }
+
+        // Exponential backoff delay
+        await new Promise(resolve => setTimeout(resolve, Math.min(1000 * Math.pow(2, retries), 10000)));
+        retries++;
+    }
+
+    throw new Error('Failed to get updated token balance after maximum retries');
 };
 
 export const getTopGlitchTokens = async () => {

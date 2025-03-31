@@ -20,6 +20,9 @@ function HomePage() {
   const [isLiveFeedLoading, setIsLiveFeedLoading] = useState(true);
 
   const timeframes = [
+    // { value: '5min', label: '5min', icon: LineChart },
+    // { value: '1h', label: '1HR', icon: LineChart },
+    // { value: '4h', label: '4HR', icon: LineChart },
     { value: '24h', label: '24HR', icon: LineChart },
   ];
 
@@ -413,14 +416,14 @@ function HomePage() {
                         <td className="py-3 text-sm">{token.name}</td>
                         <td className="py-3 text-sm">{formatCurrency(token.price, 8)}</td>
                         <td className="py-3">
-                          <div className={`flex items-center gap-1 text-sm ${token.priceChange >= 0 ? 'text-green-400' : 'text-red-400'
+                          <div className={`flex items-center gap-1 text-sm ${(token?.priceChange || 0) >= 0 ? 'text-green-400' : 'text-red-400'
                             }`}>
                             {token.priceChange >= 0 ? (
                               <TrendingUp size={14} />
                             ) : (
                               <TrendingDown size={14} />
                             )}
-                            {formatPercentage(token.priceChange)}
+                            {formatPercentage(token?.priceChange || 0)}
                           </div>
                         </td>
                         <td className="py-3">

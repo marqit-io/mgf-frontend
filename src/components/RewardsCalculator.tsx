@@ -42,6 +42,8 @@ export function RewardsCalculator({
   const calculateRewards = () => {
     if (!tokenAmount) return { usdInDay: 0, usdInTimeFrame: 0 };
 
+    debugger;
+
     const volume = projectedVolume === 'current' ? volume24h : parseFloat(customVolume || '0');
     const timeMultiplier = selectedTimeframe.value / 24; // Convert hours to days
     const userShare = parseFloat(tokenAmount) / totalSupply;

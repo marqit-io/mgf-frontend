@@ -23,9 +23,15 @@ export interface TradeInfo {
 export async function getTokenPrice(mintAddress: string): Promise<{ price: number; priceInSol: number }> {
 
     try {
-        const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAddress}`)).data;
+        let poolId = "";
+        poolId = sessionStorage.getItem(`poolId-${mintAddress}`) || "";
+        if (!poolId) {
+            const poolResponse = (await axios.get(`https://api.moneyglitch.fun/v1/pools/${mintAddress}`)).data;
+            poolId = poolResponse.pool_id;
+            sessionStorage.setItem(`poolId-${mintAddress}`, poolId);
+        }
         const raydium = await RaydiumService.getInstance();
-        const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolResponse.pool_id.toString());
+        const { computePoolInfo } = await raydium.clmm.getPoolInfoFromRpc(poolId);
         const priceInSol = SqrtPriceMath.sqrtPriceX64ToPrice(
             computePoolInfo.sqrtPriceX64,
             6, // Token decimals (usually 6 for custom tokens)
