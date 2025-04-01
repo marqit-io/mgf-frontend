@@ -123,7 +123,8 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
             distributionToken: {
                 symbol: distributionTokenMetadata?.symbol || distributionTokenMetadata?.metadata?.symbol,
                 name: distributionTokenMetadata?.name || distributionTokenMetadata?.metadata?.name,
-                address: taxInfoResponse.distribution_mint
+                address: taxInfoResponse.distribution_mint,
+                decimals: distributionTokenMetadata?.decimals || 6
             },
             distributionWallet: taxInfoResponse.distribution_wallet,
             burnWallet: taxInfoResponse.burn_wallet

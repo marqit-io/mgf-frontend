@@ -160,11 +160,23 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
       const signedTx = await signTransaction(tx);
       const signature = await connection.sendRawTransaction(signedTx.serialize());
 
-      await connection.confirmTransaction({
+      // First confirmation attempt
+      const confirmation = await connection.confirmTransaction({
         signature,
         blockhash: latestBlockhash.blockhash,
         lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
       }, 'confirmed');
+
+      // Check if the transaction failed
+      if (confirmation.value.err) {
+        throw new Error('Swap transaction failed');
+      }
+
+      // Double check transaction status
+      const status = await connection.getSignatureStatus(signature);
+      if (status.value?.err) {
+        throw new Error('Swap transaction failed');
+      }
 
       const payload = {
         base_amount: tradeType === 'buy'

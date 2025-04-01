@@ -161,7 +161,7 @@ function CreateCoinPage() {
       if (searchQuery.trim()) {
         setIsSearching(true);
         axios.get<{ result: Array<any> }>(`https://deep-index.moralis.io/api/v2.2/tokens/search?query=${searchQuery}&chains=solana&limit=3`, { headers: { "X-API-Key": import.meta.env.VITE_MORALIS_API_KEY } }).then((response) => {
-          setSearchResults(response.data.result.map(item => {
+          setSearchResults(response.data.result.filter(item => item.securityScore > 50).map(item => {
             return {
               address: item.tokenAddress,
               name: item.name,
@@ -685,6 +685,16 @@ function CreateCoinPage() {
                     )}
                   </>
                 )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-6 p-4 border border-[#00ff00]/50 bg-[#00ff00]/5 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div>
+                <p className="text-sm text-[#00ff00]">
+                  {`Token2022 programme will burn ${formData.transferTax}% of supply upon pool creation`}
+                </p>
               </div>
             </div>
           </div>

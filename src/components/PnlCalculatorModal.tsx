@@ -12,7 +12,8 @@ interface PnlCalculatorModalProps {
     remainingTokenAmount: number;
     currentTokenPrice: number;
     currentDistributionTokenPrice: number;
-    distributionTokenSymbol: string
+    distributionTokenSymbol: string;
+    distributionTokenDecimals: number;
 }
 
 interface PnlData {
@@ -35,7 +36,8 @@ export function PnlCalculatorModal({
     remainingTokenAmount,
     currentTokenPrice,
     currentDistributionTokenPrice,
-    distributionTokenSymbol
+    distributionTokenSymbol,
+    distributionTokenDecimals
 }: PnlCalculatorModalProps) {
     const { publicKey } = useWallet();
     const [pnlData, setPnlData] = useState<PnlData | null>(null);
@@ -290,9 +292,9 @@ export function PnlCalculatorModal({
                                     {/* Unrealized P&L Box */}
                                     <div className="border-2 border-[#00ff00]/20 p-4 rounded-lg bg-[#00ff00]/10">
                                         <div className="text-[#00ff00]/70 mb-1">TOTAL REWARD</div>
-                                        <div className="text-xl text-[#00ff00] font-mono">+${((pnlData?.totalRewards || 0) * currentDistributionTokenPrice).toFixed(2)}</div>
+                                        <div className="text-xl text-[#00ff00] font-mono">+${((pnlData?.totalRewards || 0) / 10 ** distributionTokenDecimals * currentDistributionTokenPrice).toFixed(2)}</div>
                                         <div className="text-sm text-[#00ff00]/60 font-mono">
-                                            {(pnlData?.totalRewards || 0).toFixed(2)} ${distributionTokenSymbol}
+                                            {((pnlData?.totalRewards || 0) / 10 ** distributionTokenDecimals).toFixed(2)} ${distributionTokenSymbol}
                                         </div>
                                     </div>
                                 </div>

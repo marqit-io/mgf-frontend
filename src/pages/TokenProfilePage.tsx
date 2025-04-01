@@ -708,6 +708,7 @@ export default function TokenProfilePage() {
         currentTokenPrice={price}
         currentDistributionTokenPrice={125}
         distributionTokenSymbol={tokenData.taxInfo.distributionToken.symbol || 'Distribution Token'}
+        distributionTokenDecimals={tokenData.taxInfo.distributionToken.decimals || 6}
       />
     </div >
   );
