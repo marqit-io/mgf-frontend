@@ -28,7 +28,7 @@ export const MgfMatrix = {
       "accounts": [
         {
           "name": "clmmProgram",
-          "address": "devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH"
+          "address": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
         },
         {
           "name": "payer",
@@ -272,7 +272,7 @@ export const MgfMatrix = {
         },
         {
           "name": "clmmProgram",
-          "address": "devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH"
+          "address": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
         },
         {
           "name": "rent",
@@ -308,7 +308,7 @@ export const MgfMatrix = {
       "accounts": [
         {
           "name": "clmmProgram",
-          "address": "devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH"
+          "address": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
         },
         {
           "name": "minter",
@@ -365,7 +365,60 @@ export const MgfMatrix = {
           "docs": [
             "The token_1 account deposit token to the pool"
           ],
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "minter"
+              },
+              {
+                "kind": "account",
+                "path": "tokenProgram"
+              },
+              {
+                "kind": "account",
+                "path": "vault1Mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
         },
         {
           "name": "vault0Mint",
@@ -472,7 +525,7 @@ export const MgfMatrix = {
           "name": "platformAdmin",
           "writable": true,
           "signer": true,
-          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
+          "address": "dpyDpRzgv8DC15bxap4AaQsmEKNuwsFbrVervFYpVp7"
         },
         {
           "name": "platformMintAuthority",
@@ -562,7 +615,7 @@ export const MgfMatrix = {
         },
         {
           "name": "feeNftOwner",
-          "address": "mqtj8nemKcW1y3fQhBz6ENWNsiHGqZ5M3ySmefokEnJ"
+          "address": "7j5bdSE2k4xcqvCEjK223CFTeDvLMPskXYJKj3ZgtPaL"
         },
         {
           "name": "positionNftAccount",
@@ -651,7 +704,7 @@ export const MgfMatrix = {
         },
         {
           "name": "lockingProgram",
-          "address": "DLockwT7X7sxtLmGH9g5kmfcjaBtncdbUmi738m5bvQC"
+          "address": "LockrWmn6K5twhz3y9w1dQERbmgSaRkfnTeTKbpofwE"
         }
       ],
       "args": []
@@ -830,36 +883,36 @@ export const MgfMatrix = {
               "value": [
                 11,
                 114,
-                102,
-                203,
-                210,
-                242,
-                69,
-                57,
-                30,
-                185,
-                218,
-                82,
+                103,
+                230,
+                18,
+                51,
+                28,
+                153,
+                172,
+                96,
+                33,
+                101,
+                43,
                 187,
-                86,
-                57,
-                223,
-                161,
-                228,
-                90,
-                23,
-                234,
-                220,
-                246,
-                71,
-                97,
-                87,
-                120,
-                168,
-                212,
-                121,
-                59,
-                37
+                219,
+                82,
+                109,
+                119,
+                208,
+                184,
+                49,
+                17,
+                169,
+                14,
+                215,
+                92,
+                255,
+                31,
+                111,
+                31,
+                12,
+                9
               ]
             }
           }
@@ -908,7 +961,7 @@ export const MgfMatrix = {
         },
         {
           "name": "executorProgram",
-          "address": "mgfPv2Yeb7UWfaH2JCwPHcHVWJPwgCsXp6yWoSzjhbJ"
+          "address": "mgfcjC4m4M84og9KHWSZfbvbGMzK5bPoRuxZa3b9gS4"
         },
         {
           "name": "rent",
@@ -949,7 +1002,7 @@ export const MgfMatrix = {
       "accounts": [
         {
           "name": "clmmProgram",
-          "address": "devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH"
+          "address": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
         },
         {
           "name": "payer",
@@ -1123,16 +1176,16 @@ export const MgfMatrix = {
       ]
     },
     {
-      "name": "wrapSol",
+      "name": "wrap",
       "discriminator": [
-        47,
-        62,
-        155,
-        172,
-        131,
-        205,
-        37,
-        201
+        178,
+        40,
+        10,
+        189,
+        228,
+        129,
+        186,
+        140
       ],
       "accounts": [
         {
@@ -1359,8 +1412,8 @@ export const MgfMatrix = {
   "errors": [
     {
       "code": 6000,
-      "name": "invalidQuoteToken",
-      "msg": "Invalid quote token"
+      "name": "transferFeeTooHigh",
+      "msg": "TransferFeeTooHigh max 900 bps"
     }
   ],
   "types": [
@@ -2148,6 +2201,12 @@ export const MgfMatrix = {
           {
             "name": "uri",
             "type": "string"
+          },
+          {
+            "name": "distributionWallet",
+            "type": {
+              "option": "pubkey"
+            }
           }
         ]
       }
@@ -2245,12 +2304,12 @@ export const MgfMatrix = {
     {
       "name": "poolConfig",
       "type": "pubkey",
-      "value": "GjLEiquek1Nc2YjcBhufUGFRkaqW1JhaGjsdFd8mys38"
+      "value": "Gex2NJRS3jVLPfbzSFM5d5DRsNoL5ynnwT1TXoDEhanz"
     },
     {
       "name": "raydiumProgram",
       "type": "pubkey",
-      "value": "devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH"
+      "value": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
     },
     {
       "name": "solMint",
@@ -2265,7 +2324,7 @@ export const MgfMatrix = {
     {
       "name": "usdcMint",
       "type": "pubkey",
-      "value": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+      "value": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
     }
   ]
 };

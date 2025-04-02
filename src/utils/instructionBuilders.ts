@@ -447,7 +447,7 @@ export function buildWrapSolInstruction(
         ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
-    return mgfProgram.methods.wrapSol(amount).accounts({
+    return mgfProgram.methods.wrap(amount).accounts({
         payer: minter,
         tokenAccount: tokenAccount,
         solMint: NATIVE_MINT,
@@ -547,8 +547,6 @@ export async function buildBuyInstruction(
         isSigner: false,
         isWritable: true
     }));
-
-    console.log(CRANKER_PROGRAM_ID.toBase58());
 
     return mgfProgram.methods
         .buy(

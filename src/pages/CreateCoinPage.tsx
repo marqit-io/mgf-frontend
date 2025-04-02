@@ -3,7 +3,7 @@ import { X, ArrowUpRight, ArrowLeft, Search, Plus, Flame, Gift, Timer, Sparkles 
 import { useNavigate } from 'react-router-dom';
 import { uploadTokenMetadata, TokenMetadata } from '../utils/ipfs';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { buildMintTokenInstruction, buildCreatePoolInstruction, buildDepositPoolInstruction, buildLockLiquidityInstruction, buildUnwrapSolInstruction, buildWrapSolInstruction } from '../utils/instructionBuilders';
+import { buildMintTokenInstruction, buildCreatePoolInstruction, buildDepositPoolInstruction, buildLockLiquidityInstruction, buildUnwrapSolInstruction, buildWrapSolInstruction, buildBuyInstruction } from '../utils/instructionBuilders';
 import {
   Keypair,
   Transaction,
@@ -430,7 +430,7 @@ function CreateCoinPage() {
         distributionInterval: formData.glitchInterval
       };
 
-      const poolParams = calculateLaunchParameters(SOL_PARAMS, mintKeypair.publicKey, new BN(Number(maxSol) * 10 ** 9));
+      const poolParams = calculateLaunchParameters(SOL_PARAMS, mintKeypair.publicKey);
 
       const positionNFTMintKeypair = Keypair.generate();
       const feeAccountKeypair = Keypair.generate();
@@ -469,7 +469,7 @@ function CreateCoinPage() {
       const jitoBundleEndpoint = `${import.meta.env.VITE_JITO_ENDPOINT}/api/v1`;
 
       // Send bundle to Jito
-      setDeploymentStatus({ step: 'Submitting bundle...', status: 'pending' });
+      setDeploymentStatus({ step: 'Submitting transaction bundle...', status: 'pending' });
       const bundlePayload = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -499,7 +499,6 @@ function CreateCoinPage() {
 
       // Wait for bundle confirmation
       setDeploymentStatus({ step: 'Waiting for bundle confirmation...', status: 'pending' });
-
       const bundleStatusPayload = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -511,6 +510,7 @@ function CreateCoinPage() {
 
       await pollBundleStatus(bundleStatusPayload);
 
+      setDeploymentStatus({ step: 'Bundle confirmed successfully', status: 'completed' });
       const decimal = (await getMint(connection, tokenRewardMint, 'confirmed', tokenRewardProgram)).decimals;
 
       const tokenPayload = {
@@ -529,6 +529,7 @@ function CreateCoinPage() {
         pool_token_account: keys.token_0_vault
       }
 
+      setDeploymentStatus({ step: 'Sending info to server...', status: 'pending' });
       const postTokenResult = await fetch(`https://api.moneyglitch.fun/v1/tokens`,
         {
           method: 'POST',
@@ -557,6 +558,42 @@ function CreateCoinPage() {
         console.error('Failed to post pool to API');
       }
 
+      setDeploymentStatus({ step: 'Buying initial tokens', status: 'pending' });
+
+      const buySolAmount = new BN(Number(maxSol) * 10 ** 9);
+      const initialBuyTx = new Transaction();
+      const wrapSolIx = await buildWrapSolInstruction(minterPublicKey, buySolAmount);
+      const initialBuyIx = await buildBuyInstruction(
+        minterPublicKey,
+        new PublicKey(keys.pool_id),
+        new PublicKey("So11111111111111111111111111111111111111112"),
+        mintKeypair.publicKey,
+        0,
+        buySolAmount
+      );
+      const unwrapSolIx = await buildUnwrapSolInstruction(minterPublicKey);
+
+      initialBuyTx.add(wrapSolIx);
+      initialBuyTx.add(initialBuyIx);
+      initialBuyTx.add(unwrapSolIx);
+
+      initialBuyTx.feePayer = minterPublicKey;
+      const latestBlockhash = await connection.getLatestBlockhash();
+      initialBuyTx.recentBlockhash = latestBlockhash.blockhash;
+
+      const signedInitialBuyTx = await signTransaction(initialBuyTx);
+      const txHash = await connection.sendRawTransaction(signedInitialBuyTx.serialize());
+
+      const txStatus = await connection.confirmTransaction({
+        signature: txHash,
+        ...latestBlockhash
+      });
+
+      if (txStatus.value.err) {
+        throw new Error('Transaction failed');
+      }
+
+      setDeploymentStatus({ step: 'Successfully bought initial tokens', status: 'completed' });
       navigate(`/token/${mintKeypair.publicKey.toBase58()}`);
     } catch (error) {
       console.error('Deployment error:', error);
