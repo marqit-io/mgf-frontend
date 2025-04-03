@@ -17,6 +17,8 @@ import axios from 'axios';
 import { calculateLaunchParameters, SOL_PARAMS, getEstimatedTokenAmount } from '../utils/poolConfig';
 import { BN } from '@coral-xyz/anchor';
 import { getMint, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import toast from 'react-hot-toast';
+
 interface TokenDistribution {
   address: string;
   name: string;
@@ -369,7 +371,24 @@ function CreateCoinPage() {
     e.preventDefault();
 
     if (!connected || !minterPublicKey || !signTransaction || !signAllTransactions) {
-      alert('Please connect your wallet first');
+      toast.error(
+        <div className="flex flex-col gap-2">
+          <span className="text-sm opacity-80">Please connect your wallet to continue</span>
+        </div>,
+        {
+          style: {
+            border: '1px solid #00ff00',
+            padding: '16px',
+            color: '#fff',
+            background: 'rgba(0, 0, 0, 0.9)',
+          },
+          iconTheme: {
+            primary: '#ff4444',
+            secondary: '#000',
+          },
+          duration: 4000,
+        }
+      );
       return;
     }
 
@@ -645,6 +664,11 @@ function CreateCoinPage() {
     setMaxSol(value);
     calculateEstimatedTokens(value);
   };
+
+  useEffect(() => {
+    // Configure global toast styles
+    toast.remove(); // Clear any existing toasts on component mount
+  }, []);
 
   if (step === 'initial-buy') {
     return (
