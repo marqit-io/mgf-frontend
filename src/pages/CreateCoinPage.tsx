@@ -577,42 +577,44 @@ function CreateCoinPage() {
         console.error('Failed to post pool to API');
       }
 
-      setDeploymentStatus({ step: 'Buying initial tokens', status: 'pending' });
+      if (Number(maxSol) > 0) {
+        setDeploymentStatus({ step: 'Buying initial tokens', status: 'pending' });
 
-      const buySolAmount = new BN(Number(maxSol) * 10 ** 9);
-      const initialBuyTx = new Transaction();
-      const wrapSolIx = await buildWrapSolInstruction(minterPublicKey, buySolAmount);
-      const initialBuyIx = await buildBuyInstruction(
-        minterPublicKey,
-        new PublicKey(keys.pool_id),
-        new PublicKey("So11111111111111111111111111111111111111112"),
-        mintKeypair.publicKey,
-        0,
-        buySolAmount
-      );
-      const unwrapSolIx = await buildUnwrapSolInstruction(minterPublicKey);
+        const buySolAmount = new BN(Number(maxSol) * 10 ** 9);
+        const initialBuyTx = new Transaction();
+        const wrapSolIx = await buildWrapSolInstruction(minterPublicKey, buySolAmount);
+        const initialBuyIx = await buildBuyInstruction(
+          minterPublicKey,
+          new PublicKey(keys.pool_id),
+          new PublicKey("So11111111111111111111111111111111111111112"),
+          mintKeypair.publicKey,
+          0,
+          buySolAmount
+        );
+        const unwrapSolIx = await buildUnwrapSolInstruction(minterPublicKey);
 
-      initialBuyTx.add(wrapSolIx);
-      initialBuyTx.add(initialBuyIx);
-      initialBuyTx.add(unwrapSolIx);
+        initialBuyTx.add(wrapSolIx);
+        initialBuyTx.add(initialBuyIx);
+        initialBuyTx.add(unwrapSolIx);
 
-      initialBuyTx.feePayer = minterPublicKey;
-      const latestBlockhash = await connection.getLatestBlockhash();
-      initialBuyTx.recentBlockhash = latestBlockhash.blockhash;
+        initialBuyTx.feePayer = minterPublicKey;
+        const latestBlockhash = await connection.getLatestBlockhash();
+        initialBuyTx.recentBlockhash = latestBlockhash.blockhash;
 
-      const signedInitialBuyTx = await signTransaction(initialBuyTx);
-      const txHash = await connection.sendRawTransaction(signedInitialBuyTx.serialize());
+        const signedInitialBuyTx = await signTransaction(initialBuyTx);
+        const txHash = await connection.sendRawTransaction(signedInitialBuyTx.serialize());
 
-      const txStatus = await connection.confirmTransaction({
-        signature: txHash,
-        ...latestBlockhash
-      });
+        const txStatus = await connection.confirmTransaction({
+          signature: txHash,
+          ...latestBlockhash
+        });
 
-      if (txStatus.value.err) {
-        throw new Error('Transaction failed');
+        if (txStatus.value.err) {
+          throw new Error('Transaction failed');
+        }
+
+        setDeploymentStatus({ step: 'Successfully bought initial tokens', status: 'completed' });
       }
-
-      setDeploymentStatus({ step: 'Successfully bought initial tokens', status: 'completed' });
       navigate(`/token/${mintKeypair.publicKey.toBase58()}`);
     } catch (error) {
       console.error('Deployment error:', error);
