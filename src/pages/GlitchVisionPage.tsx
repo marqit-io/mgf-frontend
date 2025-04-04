@@ -158,7 +158,7 @@ function GlitchVisionPage() {
                       <Flame size={16} className="text-red-400" />
                       <div>
                         <div className="text-xs opacity-70">Total Burned</div>
-                        <div className="text-sm">{formatCurrency(totalStats.total_burned || 0)}</div>
+                        <div className="text-sm">{formatCurrency(totalStats.total_burned / 100 || 0)}</div>
                       </div>
                     </div>
                   </div>
@@ -168,7 +168,7 @@ function GlitchVisionPage() {
                       <Gift size={16} className="text-green-400" />
                       <div>
                         <div className="text-xs opacity-70">Total Rewards</div>
-                        <div className="text-sm">{formatCurrency(totalStats.total_distributed || 0)}</div>
+                        <div className="text-sm">{formatCurrency(totalStats.total_distributed / 100 || 0)}</div>
                       </div>
                     </div>
                   </div>

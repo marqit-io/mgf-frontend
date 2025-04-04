@@ -27,6 +27,7 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('1');
+  const [isCustomSlippage, setIsCustomSlippage] = useState(false);
   const { publicKey, connected, signTransaction } = useWallet();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,24 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
   const inputAmount = parseFloat(amount || '0');
 
   // Add this near the top of the component
-  const slippageOptions = ['0.5', '1', '2', '3'];
+  const slippageOptions = ['0.5', '1', '2', '3', 'custom'];
+
+  const handleSlippageChange = (option: string) => {
+    if (option === 'custom') {
+      setIsCustomSlippage(true);
+      // Keep the previous slippage value when switching to custom
+    } else {
+      setIsCustomSlippage(false);
+      setSlippage(option);
+    }
+  };
+
+  const handleCustomSlippageChange = (value: number) => {
+    const sanitizedValue = value ? value : 0;
+    if ((Number(sanitizedValue) >= 0 && Number(sanitizedValue) <= 100)) {
+      setSlippage(sanitizedValue.toString());
+    }
+  };
 
   const handleSetMaxAmount = () => {
     if (tradeType === 'buy') {
@@ -341,16 +359,29 @@ export function TradePanel({ tokenSymbol, tokenMintAddress, poolId, tokenPriceIn
             {slippageOptions.map((option) => (
               <button
                 key={option}
-                onClick={() => setSlippage(option)}
-                className={`px-3 py-2 text-xs transition-all duration-200 border ${slippage === option
+                onClick={() => handleSlippageChange(option)}
+                className={`px-3 py-2 text-xs transition-all duration-200 border ${(option === 'custom' && isCustomSlippage) || (slippage === option && !isCustomSlippage)
                   ? 'bg-[#00ff00]/20 border-[#00ff00] text-[#00ff00] shadow-[0_0_10px_rgba(0,255,0,0.2)]'
                   : 'terminal-button hover:bg-[#00ff00]/10'
                   }`}
               >
-                {option}%
+                {option === 'custom' ? 'CUSTOM' : `${option}%`}
               </button>
             ))}
           </div>
+          {isCustomSlippage && (
+            <div className="mt-2">
+              <input
+                type="number"
+                value={slippage}
+                onChange={(e) => handleCustomSlippageChange(Number(e.target.value))}
+                className="terminal-input px-3 py-2 bg-black/30 w-24 text-xs"
+                placeholder="0.00"
+                min="0"
+                max="100"
+              />
+            </div>
+          )}
         </div>
       </div>
 

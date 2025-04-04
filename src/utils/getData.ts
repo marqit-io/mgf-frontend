@@ -129,7 +129,7 @@ export const getTokenDataFromMintAddress = async (mintAccount: PublicKey) => {
             distributionWallet: taxInfoResponse.distribution_wallet,
             burnWallet: taxInfoResponse.burn_wallet
         },
-        glitchInfo: glitchInfo.distributed_value + glitchInfo.burned_value
+        glitched: (glitchInfo.total_value_burned + glitchInfo.total_value_distributed) / 100
     };
 
     return tokenData;
@@ -297,34 +297,11 @@ export const getTopGlitchTokens = async () => {
                 let tokenInfoResponse: any = {};
                 const solscanApiKey = import.meta.env.VITE_SOLSCAN_API_KEY;
 
-                try {
-                    // Fetch Solscan metadata with retry and custom headers
-                    tokenSolscanMetadata = await fetchWithRetry(
-                        `https://pro-api.solscan.io/v2.0/token/meta/?address=${mintAccount.toString()}`,
-                        { headers: { 'token': solscanApiKey } }
-                    );
-                    tokenSolscanMetadata = tokenSolscanMetadata.data;
-                } catch (error) {
-                    // Fallback to moneyglitch API if Solscan fails
-                    tokenInfoResponse = await fetchWithRetry(
-                        `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
-                    );
-                }
-
-                if (!tokenSolscanMetadata?.name) {
-                    tokenInfoResponse = await fetchWithRetry(
-                        `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
-                    );
-                }
-
-                const taxInfoResponse = await fetchWithRetry(
-                    `https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`
-                );
-
                 // Fetch additional data with retry
-                const [glitchInfo, poolInfoResponse] = await Promise.all([
+                const [glitchInfo, poolInfoResponse, taxInfoResponse] = await Promise.all([
                     fetchWithRetry(`https://api.moneyglitch.fun/v1/stats/token/${mintAccount.toString()}`),
-                    fetchWithRetry(`https://api.moneyglitch.fun/v1/pools/${mintAccount.toString()}`)
+                    fetchWithRetry(`https://api.moneyglitch.fun/v1/pools/${mintAccount.toString()}`),
+                    fetchWithRetry(`https://api.moneyglitch.fun/v1/fees/${mintAccount.toString()}`)
                 ]);
 
                 let poolStats: any = {};
@@ -340,7 +317,25 @@ export const getTopGlitchTokens = async () => {
                         1
                     );
                 } catch (error) {
-                    console.error('Error fetching pool stats:', error);
+
+                }
+
+                if (poolStats?.tokenName == null) {
+                    try {
+                        // Fetch Solscan metadata with retry and custom headers
+                        tokenSolscanMetadata = await fetchWithRetry(
+                            `https://pro-api.solscan.io/v2.0/token/meta/?address=${mintAccount.toString()}`,
+                            { headers: { 'token': solscanApiKey } }
+                        );
+                        tokenSolscanMetadata = tokenSolscanMetadata.data;
+                    } catch (error) {
+                    }
+
+                    if (!tokenSolscanMetadata?.name) {
+                        tokenInfoResponse = await fetchWithRetry(
+                            `https://api.moneyglitch.fun/v1/tokens/${mintAccount.toString()}`
+                        );
+                    }
                 }
 
                 // Get price using getTokenPrice
@@ -348,12 +343,13 @@ export const getTopGlitchTokens = async () => {
 
                 tokenData = {
                     id: item.mint,
-                    name: tokenSolscanMetadata?.metadata?.name || tokenSolscanMetadata?.name || tokenInfoResponse.name,
+                    name: poolStats?.tokenName || tokenSolscanMetadata?.metadata?.name || tokenSolscanMetadata?.name || tokenInfoResponse.name,
+                    profileImage: poolStats.tokenLogo || tokenSolscanMetadata?.metadata?.image || tokenSolscanMetadata?.icon,
                     price: poolStats?.currentUsdPrice || price?.price || 0,
                     priceChange: poolStats?.pricePercentChange?.["24h"] || tokenSolscanMetadata?.price_change_24h || 0,
                     marketCap: poolStats?.currentUsdPrice * tokenSolscanMetadata?.supply / 10 ** 6 || tokenSolscanMetadata?.market_cap || 0,
                     volume24h: poolStats?.totalVolume?.["24h"] || tokenSolscanMetadata?.volume_24h || 0,
-                    glitchesDistributed: glitchInfo.total_value_burned + glitchInfo.total_value_distributed,
+                    glitched: (glitchInfo.total_value_burned + glitchInfo.total_value_distributed) / 100,
                     glitchType: taxInfoResponse?.fee_type || 'NoFee',
                     tax: {
                         enabled: taxInfoResponse?.fee_type !== 'NoFee',

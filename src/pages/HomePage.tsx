@@ -226,11 +226,11 @@ function HomePage() {
                   </div>
                   <div className="flex justify-between">
                     <span>&gt; TOTAL_REWARDS:</span>
-                    <span className="terminal-value">{formatCurrency(totalStats.total_distributed || 0)}</span>
+                    <span className="terminal-value">{formatCurrency(totalStats.total_distributed / 100 || 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>&gt; TOTAL_BURNED:</span>
-                    <span className="terminal-value">{formatCurrency(totalStats.total_burned || 0)}</span>
+                    <span className="terminal-value">{formatCurrency(totalStats.total_burned / 100 || 0)}</span>
                   </div>
                 </>
               ) : (
@@ -413,7 +413,10 @@ function HomePage() {
                         className="border-t border-[#00ff00]/20 cursor-pointer hover:bg-[#00ff00]/10 transition-colors"
                         onClick={() => handleTokenClick(token.id)}
                       >
-                        <td className="py-3 text-sm">{token.name}</td>
+                        <td className="py-3 text-sm flex items-center gap-4">
+                          <img src={token.profileImage} alt={token.name} className="w-8 h-8 rounded-full" />
+                          <div>{token.name}</div>
+                        </td>
                         <td className="py-3 text-sm">{formatCurrency(token.price, 8)}</td>
                         <td className="py-3">
                           <div className={`flex items-center gap-1 text-sm ${(token?.priceChange || 0) >= 0 ? 'text-green-400' : 'text-red-400'
@@ -441,7 +444,7 @@ function HomePage() {
                         <td className="py-3">
                           <div className="flex items-center gap-1 text-sm">
                             <Sparkles size={14} className="opacity-50" />
-                            {formatCurrency(token.glitchesDistributed)}
+                            {formatCurrency(token.glitched)}
                           </div>
                         </td>
                         <td className="py-3 text-sm">
